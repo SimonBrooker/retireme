@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+{% if not has_accounts %}
+<div class="empty-note">
+  No accounts yet. <a href="{{ url_for('accounts.index') }}">Add your first account</a> to see projections.
+</div>
+{% else %}
+
+<div class="chart-card" id="inflation-toggle-card">
+  <h2>View options</h2>
+  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Not saved — just a lens on the same figures. Your actual inflation estimate is set in Settings.</p>
+  <form method="get" action="{{ url_for('dashboard.index') }}">
+    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+      <input type="checkbox" name="inflated" value="1" data-auto-submit {{ "checked" if inflated }}>
+      Show inflated figures (+{{ profile.inflation_rate }}%/yr) for retirement &amp; kids accounts
+    </label>
+  </form>
+</div>
+
+{% if inflated %}
+<div class="flash success" style="margin-bottom: 18px;">
+  Showing inflated figures for retirement accounts only — property and "Total net worth" stay in today's money, since property's growth rate isn't necessarily discounted for inflation the same way.
+</div>
+{% endif %}
+{% endif %}
+
+<div class="ledger-total">
+  <div class="label">Total net worth today</div>
+  <div class="value mono">{{ profile.currency_symbol }}{{ "{:,.0f}".format(current_row.total_net_worth) }}</div>
+  <div class="caption">as at age {{ current_row.age }} · includes everything, e.g. property equity</div>
+</div>
+
+<div class="cards">
+  <div class="card">
+    <div class="stat-label">Retirement assets today</div>
+    <div class="stat-value">{{ profile.currency_symbol }}{{ "{:,.0f}".format(current_row.retirement_total) }}</div>
+    <div class="stat-sub">Excludes anything not flagged for withdrawal — e.g. your home</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">At retirement (age {{ profile.retirement_age }})</div>
+    <div class="stat-value">{{ profile.currency_symbol }}{{ "{:,.0f}".format(retirement_row.retirement_total) }}</div>
+    <div class="stat-sub">{{ profile.currency_symbol }}{{ "{:,.0f}".format(retirement_row.total_net_worth) }} total net worth · {{ profile.currency_symbol }}{{ "{:,.0f}".format(retirement_row.withdrawal_capacity) }}/yr at {{ profile.withdrawal_rate }}% (retirement assets only)</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Projected at age {{ profile.end_age }}</div>
+    <div class="stat-value">{{ profile.currency_symbol }}{{ "{:,.0f}".format(final_row.retirement_total) }}</div>
+    <div class="stat-sub">{{ profile.currency_symbol }}{{ "{:,.0f}".format(final_row.total_net_worth) }} total net worth · {{ profile.currency_symbol }}{{ "{:,.0f}".format(final_row.withdrawal_capacity) }}/yr (retirement assets only)</div>
+  </div>
+  {% if profile.annual_expenses_target %}
+  <div class="card">
+    <div class="stat-label">Target income vs capacity</div>
+    <div class="stat-value">{{ profile.currency_symbol }}{{ "{:,.0f}".format(profile.annual_expenses_target) }}</div>
+    <div class="stat-sub">
+      {% if retirement_row.withdrawal_capacity >= profile.annual_expenses_target %}
+        <span style="color: var(--moss);">On track at retirement</span>
+      {% else %}
+        <span style="color: var(--rust);">Short by {{ profile.currency_symbol }}{{ "{:,.0f}".format(profile.annual_expenses_target - retirement_row.withdrawal_capacity) }}/yr</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="chart-card">
+  <h2>Net worth by account</h2>
+  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Hover a point for that year's growth and contribution. Dashed lines mark today, your target retirement age, and (if set) the age your withdrawal capacity first reaches your target income. Points marked with a dot are actual recorded figures, not projections.{% if inflated %} Retirement accounts shown inflated; property is always today's money.{% endif %}</p>
+  <canvas id="compositionChart" height="120"></canvas>
+</div>
+
+<div class="chart-card">
+  <h2>Withdrawal capacity</h2>
+  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Annual income available at your {{ profile.withdrawal_rate }}% withdrawal rate — based on retirement assets only, not your total net worth.{% if inflated %} Inflated figures.{% endif %}</p>
+  <canvas id="withdrawalChart" height="90"></canvas>
+</div>
+
+<div class="chart-card">
+  <h2>Growth rate scenarios</h2>
+  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Retirement assets only (excludes property), from today to age {{ profile.end_age }}. Same contributions throughout — only the assumed growth rate changes. "Your accounts' rates" uses whatever you've set per account on the Accounts page.{% if inflated %} Inflated figures.{% endif %}</p>
+  <canvas id="scenarioChart" height="110"></canvas>
+</div>
+
+<div class="chart-card">
+  <h2>Year by year</h2>
+  <div style="max-height: 420px; overflow-y: auto;">
+    <table class="ledger">
+      <thead>
+        <tr>
+          <th>Age</th>
+          {% for a in accounts if a.include_in_withdrawal_calc %}<th>{{ a.name }}</th>{% endfor %}
+          <th>Retirement assets</th>
+          <th>% diff</th>
+          <th>Withdrawal/yr</th>
+          {% for a in accounts if not a.include_in_withdrawal_calc %}<th>{{ a.name }}</th>{% endfor %}
+          <th>Total net worth</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr class="{{ 'retired' if r.is_retired }} {{ 'historical' if r.is_historical }}">
+          <td>
+            {{ r.age }}
+            {% if r.age == profile.current_age %} ●today{% endif %}
+            {% if r.age == profile.retirement_age %} ★{% endif %}
+          </td>
+          {% for a in accounts if a.include_in_withdrawal_calc %}
+          <td>
+            {% if a.id in r.balances %}{{ "{:,.0f}".format(r.balances[a.id]) }}{% if r.is_actual.get(a.id) %}<span class="dim" title="Actual recorded figure">·</span>{% endif %}{% else %}<span class="dim">—</span>{% endif %}
+          </td>
+          {% endfor %}
+          <td>{{ "{:,.0f}".format(r.retirement_total) }}</td>
+          <td class="{{ 'diff-positive' if r.retirement_pct_diff and r.retirement_pct_diff > 0 else 'diff-negative' if r.retirement_pct_diff and r.retirement_pct_diff < 0 else 'dim' }}">{% if r.retirement_pct_diff is not none %}{{ "{:+.1f}%".format(r.retirement_pct_diff) }}{% else %}—{% endif %}</td>
+          <td>{{ "{:,.0f}".format(r.withdrawal_capacity) }}</td>
+          {% for a in accounts if not a.include_in_withdrawal_calc %}
+          <td>
+            {% if a.id in r.balances %}{{ "{:,.0f}".format(r.balances[a.id]) }}{% if r.is_actual.get(a.id) %}<span class="dim" title="Actual recorded figure">·</span>{% endif %}{% else %}<span class="dim">—</span>{% endif %}
+          </td>
+          {% endfor %}
+          <td>{{ "{:,.0f}".format(r.total_net_worth) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="hint dim">★ target retirement age · ●today marks your current age · rows before today come from your recorded <a href="{{ url_for('history.index') }}">history</a>, where available.</p>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% endblock %}

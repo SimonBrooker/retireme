@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Kids{% endblock %}
+{% block content %}
+<h1>Kids</h1>
+<p class="dim">Junior ISAs and Junior SIPPs for your children — tracked separately from your own net worth and retirement figures.</p>
+
+{% if children %}
+<div class="chart-card" id="inflation-toggle-card">
+  <h2>View options</h2>
+  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Not saved — just a lens on the same figures. Your actual inflation estimate is set in Settings.</p>
+  <form method="get" action="{{ url_for('kids.index') }}">
+    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+      <input type="checkbox" name="inflated" value="1" data-auto-submit {{ "checked" if inflated }}>
+      Show inflated figures (+{{ inflation_rate }}%/yr)
+    </label>
+  </form>
+</div>
+{% endif %}
+
+{% if not children %}
+<div class="empty-note">No children added yet — add one below.</div>
+{% endif %}
+
+{% if stats %}
+<div class="cards" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+  {% for s in stats %}
+  <div class="card">
+    <div class="stat-label">{{ s.child.name }} · age {{ s.child.current_age }}</div>
+    <div class="stat-value">{{ current_user.profile.currency_symbol }}{{ "{:,.0f}".format(s.current_total) }}</div>
+    <div class="stat-sub">
+      {% if not s.has_accounts %}
+        No JISA/JSIPP added yet
+      {% elif s.at_18 is not none %}
+        Projected at 18: {{ current_user.profile.currency_symbol }}{{ "{:,.0f}".format(s.at_18) }}
+      {% else %}
+        Already past 18
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if children %}
+<div class="chart-card">
+  <h2>Projected value by age</h2>
+  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Each line uses that child's own JISA/JSIPP growth and contribution figures from the Accounts page. Dashed line marks their 18th birthday.{% if inflated %} Inflated figures.{% endif %}</p>
+  <canvas id="kidsChart" height="110"></canvas>
+</div>
+{% endif %}
+
+{% if children %}
+<div class="chart-card">
+  <h2>Children</h2>
+  <div class="cards" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+    {% for c in children %}
+    <div class="card">
+      <form method="post" action="{{ url_for('kids.edit_child', child_id=c.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="field">
+          <label>Name</label>
+          <input type="text" name="name" value="{{ c.name }}" required>
+        </div>
+        <div class="field">
+          <label>Date of birth</label>
+          <input type="date" name="date_of_birth" value="{{ c.date_of_birth.isoformat() }}" max="{{ today_iso }}" required>
+        </div>
+        <div class="hint">Current age: {{ c.current_age }} — kept up to date automatically.</div>
+        <div class="btn-row">
+          <button type="submit">Save</button>
+        </div>
+      </form>
+      <form method="post" action="{{ url_for('kids.delete_child', child_id=c.id) }}" style="margin-top:8px;" data-confirm="Remove {{ c.name }} and their accounts? This can't be undone.">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn-danger">Remove {{ c.name }}</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="chart-card">
+  <h2>Add a child</h2>
+  <form method="post" action="{{ url_for('kids.add_child') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="form-grid">
+      <div class="field">
+        <label>Name</label>
+        <input type="text" name="name" placeholder="e.g. Emma" required>
+      </div>
+      <div class="field">
+        <label>Date of birth</label>
+        <input type="date" name="date_of_birth" max="{{ today_iso }}" required>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button type="submit">Add child</button>
+    </div>
+  </form>
+</div>
+
+<p class="dim" style="font-size:0.85rem;">Add their JISA or JSIPP from the <a href="{{ url_for('accounts.index') }}">Accounts</a> page once they're added here.</p>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/kids-charts.js') }}"></script>
+{% endblock %}

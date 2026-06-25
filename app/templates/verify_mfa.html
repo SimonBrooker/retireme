@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Verify it's you{% endblock %}
+{% block content %}
+<div class="center-screen">
+  <div class="panel">
+    <h1>Enter your code</h1>
+    <span class="rule"></span>
+    <p class="dim">Open your authenticator app and enter the current 6-digit code.</p>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="field">
+        <label for="code">Authentication code</label>
+        <input type="text" id="code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" required autofocus>
+      </div>
+      <div class="btn-row">
+        <button type="submit">Verify</button>
+        <a href="{{ url_for('auth.cancel_mfa') }}" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

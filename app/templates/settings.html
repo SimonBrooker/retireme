@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+
+<div class="chart-card">
+  <h2>Currency</h2>
+  <p class="dim">Changes the symbol shown throughout the app. Doesn't convert any of your existing figures.</p>
+  <form method="post" action="{{ url_for('settings.set_currency') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="currency-grid">
+      {% for code, name, symbol, flag in currencies %}
+      <label class="currency-option {{ 'selected' if profile.currency == code }}">
+        <input type="radio" name="currency" value="{{ code }}" {{ "checked" if profile.currency == code }} data-auto-submit>
+        <span class="currency-flag">{{ flag }}</span>
+        <span class="currency-code mono">{{ code }}</span>
+        <span class="currency-symbol dim">{{ symbol }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </form>
+</div>
+
+<div class="chart-card">
+  <h2>Appearance</h2>
+  <p class="dim">Pick a theme — light or dark.</p>
+  <form method="post" action="{{ url_for('settings.set_theme') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="theme-grid">
+      {% for key, label in themes %}
+      <label class="theme-option {{ 'selected' if profile.theme == key }}" data-theme-preview="{{ key }}">
+        <input type="radio" name="theme" value="{{ key }}" {{ "checked" if profile.theme == key }} data-auto-submit>
+        <span class="theme-swatch"><span class="s1"></span><span class="s2"></span><span class="s3"></span></span>
+        <span class="theme-name">{{ label }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </form>
+</div>
+
+<div class="chart-card">
+  <h2>Assumptions</h2>
+  <form method="post" action="{{ url_for('settings.index') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="form-grid">
+      <div class="field">
+        <label for="date_of_birth">Date of birth</label>
+        <input type="date" id="date_of_birth" name="date_of_birth" value="{{ profile.date_of_birth.isoformat() if profile.date_of_birth else '' }}" max="{{ today_iso }}">
+        <div class="hint">Set this and your age stays correct automatically.</div>
+      </div>
+      <div class="field">
+        <label for="current_age">Current age <span id="age_preview" class="dim"></span></label>
+        <input type="number" id="current_age" name="current_age" value="{{ profile.current_age }}">
+        <div class="hint" id="age_fallback_hint">{{ "Calculated automatically from date of birth." if profile.date_of_birth else "Only used if date of birth is left blank." }}</div>
+      </div>
+      <div class="field">
+        <label>Target retirement age</label>
+        <input type="number" name="retirement_age" value="{{ profile.retirement_age }}" required>
+      </div>
+      <div class="field">
+        <label>Project to age</label>
+        <input type="number" name="end_age" value="{{ profile.end_age }}" required>
+      </div>
+      <div class="field">
+        <label>Withdrawal rate (%)</label>
+        <input type="number" step="0.1" name="withdrawal_rate" value="{{ profile.withdrawal_rate }}" required>
+      </div>
+      <div class="field">
+        <label>Inflation estimate (%)</label>
+        <input type="number" step="0.1" name="inflation_rate" value="{{ profile.inflation_rate }}" required>
+        <div class="hint">Only used by the "show inflated figures" toggle on the Dashboard and Kids pages — doesn't change any growth or projection numbers. If you've already discounted your account growth rates for inflation, this is roughly how much.</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Target annual income in retirement ({{ profile.currency_symbol }}, optional)</label>
+      <input type="number" step="100" name="annual_expenses_target" value="{{ profile.annual_expenses_target or '' }}">
+    </div>
+    <div class="btn-row">
+      <button type="submit">Save</button>
+
+    </div>
+  </form>
+</div>
+
+<div class="chart-card">
+  <h2>Change password</h2>
+  <form method="post" action="{{ url_for('settings.change_password') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="form-grid">
+      <div class="field">
+        <label>Current password</label>
+        <input type="password" name="current_password" required>
+      </div>
+      <div class="field">
+        <label>New password</label>
+        <input type="password" name="new_password" required minlength="8">
+      </div>
+      <div class="field">
+        <label>Confirm new password</label>
+        <input type="password" name="confirm" required minlength="8">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button type="submit">Change password</button>
+    </div>
+  </form>
+</div>
+
+<div class="chart-card">
+  <h2>Two-factor authentication</h2>
+  {% if current_user.totp_enabled %}
+  <p class="dim"><span style="color: var(--moss);">●</span> Enabled — your authenticator app's code is required at login.</p>
+  <form method="post" action="{{ url_for('settings.mfa_disable') }}" data-confirm="Turn off two-factor authentication?">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="field" style="max-width:280px;">
+      <label>Confirm your password to disable</label>
+      <input type="password" name="password" required>
+    </div>
+    <div class="btn-row">
+      <button type="submit" class="btn-danger">Disable two-factor authentication</button>
+    </div>
+  </form>
+  {% else %}
+  <p class="dim">Not enabled. Add an authenticator app (Google Authenticator, Authy, 1Password, etc.) as a second login step.</p>
+  <div class="btn-row" style="margin-top:0;">
+    <a href="{{ url_for('settings.mfa_setup') }}" class="btn">Set up two-factor authentication</a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="chart-card">
+  <h2>Data management</h2>
+  <p class="dim">Export everything — accounts, history, inheritance entries, and your assumptions — as a single backup file. Doesn't include your username or password.</p>
+  <div class="btn-row" style="margin-top:0;">
+    <a href="{{ url_for('settings.export_data') }}" class="btn">Export data (.json)</a>
+  </div>
+
+  <h3 style="margin-top:28px;">Import data</h3>
+  <p class="dim">Restore from a previously exported file. This <strong>replaces</strong> all current accounts, history, and inheritance entries — it doesn't merge with what's already here.</p>
+  <form method="post" action="{{ url_for('settings.import_data') }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="field">
+      <label>Export file</label>
+      <input type="file" name="file" accept="application/json" required>
+    </div>
+    <div class="checkbox-row" style="margin-top:6px;">
+      <input type="checkbox" id="confirm_import" name="confirm_import" required>
+      <label for="confirm_import">I understand this replaces all current accounts, history, and inheritance entries</label>
+    </div>
+    <div class="btn-row">
+      <button type="submit">Import &amp; replace</button>
+    </div>
+  </form>
+</div>
+
+<div class="chart-card danger-zone">
+  <h2>Danger zone</h2>
+  <p class="dim">Permanently delete every account, child, snapshot, and inheritance entry, and reset your assumptions back to defaults. Your username and password are kept — you'll just go through the setup wizard again. Export a backup first if you want a way back.</p>
+  <form method="post" action="{{ url_for('settings.reset_data') }}" data-confirm="This deletes all your accounts, history, and inheritance entries. Are you sure?">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="field" style="max-width:280px;">
+      <label>Type RESET to confirm</label>
+      <input type="text" name="confirm_reset" placeholder="RESET" autocomplete="off" required>
+    </div>
+    <div class="btn-row">
+      <button type="submit" class="btn-danger">Reset all data</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dob.js') }}"></script>
+{% endblock %}

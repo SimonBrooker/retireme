@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Setup · About you{% endblock %}
+{% block content %}
+<div class="center-screen">
+  <div class="panel wide">
+    <div class="steps">
+      <span class="current">1 · About you</span>
+      <span>·</span><span>2 · Accounts</span>
+      <span>·</span><span>3 · Inheritance</span>
+    </div>
+    <h1>Let's set your assumptions</h1>
+    <span class="rule"></span>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="field">
+        <label>Currency</label>
+        <div class="currency-grid">
+          {% for code, name, symbol, flag in currencies %}
+          <label class="currency-option {{ 'selected' if profile.currency == code }}">
+            <input type="radio" name="currency" value="{{ code }}" {{ "checked" if profile.currency == code }}>
+            <span class="currency-flag">{{ flag }}</span>
+            <span class="currency-code mono">{{ code }}</span>
+            <span class="currency-symbol dim">{{ symbol }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="date_of_birth">Date of birth</label>
+          <input type="date" id="date_of_birth" name="date_of_birth" value="{{ profile.date_of_birth.isoformat() if profile.date_of_birth else '' }}" max="{{ today_iso }}">
+          <div class="hint">Recommended — your age then stays correct automatically, no need to update it each year.</div>
+        </div>
+        <div class="field">
+          <label for="current_age">Current age <span id="age_preview" class="dim"></span></label>
+          <input type="number" id="current_age" name="current_age" value="{{ profile.current_age }}">
+          <div class="hint" id="age_fallback_hint">Only used if date of birth is left blank.</div>
+        </div>
+        <div class="field">
+          <label for="retirement_age">Target retirement age</label>
+          <input type="number" id="retirement_age" name="retirement_age" value="{{ profile.retirement_age }}" required>
+        </div>
+        <div class="field">
+          <label for="end_age">Project to age</label>
+          <input type="number" id="end_age" name="end_age" value="{{ profile.end_age }}" required>
+          <div class="hint">How far out to model — e.g. 90 or 95.</div>
+        </div>
+        <div class="field">
+          <label for="withdrawal_rate">Withdrawal rate (%)</label>
+          <input type="number" step="0.1" id="withdrawal_rate" name="withdrawal_rate" value="{{ profile.withdrawal_rate }}" required>
+          <div class="hint">The "4% rule" is the common default.</div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="annual_expenses_target">Target annual income in retirement (optional, {{ profile.currency_symbol }})</label>
+        <input type="number" step="100" id="annual_expenses_target" name="annual_expenses_target" value="{{ profile.annual_expenses_target or '' }}">
+        <div class="hint">If set, your dashboard will show how your withdrawal capacity compares to this.</div>
+      </div>
+      <div class="btn-row">
+        <button type="submit">Continue</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dob.js') }}"></script>
+{% endblock %}

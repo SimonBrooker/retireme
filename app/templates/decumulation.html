@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% block title %}Decumulation{% endblock %}
+{% block content %}
+<h1>Decumulation</h1>
+<p class="dim">What happens after retirement — modeling different withdrawal rates against your retirement assets only (property is never included), including UK income tax on SIPP/pension withdrawals, the State Pension, and the pension access-age lock. ISA withdrawals stay tax-free.</p>
+
+{% if not has_accounts %}
+<div class="empty-note">No retirement assets yet — add accounts on the <a href="{{ url_for('accounts.index') }}">Accounts</a> page first (anything flagged "counts as a retirement asset").</div>
+{% else %}
+
+<div class="chart-card" id="decum-view-options">
+  <h2>View options</h2>
+  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">These change how the figures below are calculated and displayed — they're not saved, just a lens on the same underlying data. Your actual assumptions are in the Assumptions card further down.</p>
+  <form method="get" action="{{ url_for('decumulation.index') }}">
+    <div class="form-grid">
+      <div class="field">
+        <label>Withdrawal style</label>
+        <select name="strategy" data-auto-submit id="decum-strategy-select">
+          <option value="fixed" {{ "selected" if strategy == "fixed" }}>Fixed (today's £ forever)</option>
+          <option value="inflation_adjusted" {{ "selected" if strategy == "inflation_adjusted" }}>Inflation-adjusted (maintains purchasing power)</option>
+        </select>
+      </div>
+      <div class="field" data-index-thresholds-field>
+        <label>Tax thresholds</label>
+        <select name="index_thresholds" data-auto-submit>
+          <option value="0" {{ "selected" if not index_thresholds }}>Frozen (today's policy)</option>
+          <option value="1" {{ "selected" if index_thresholds }}>Indexed with inflation</option>
+        </select>
+        <div class="hint">Only matters with inflation-adjusted withdrawals — otherwise income isn't rising, so there's nothing to index against.</div>
+      </div>
+      <div class="field">
+        <label>Show figures in</label>
+        <select name="display" data-auto-submit>
+          <option value="nominal" {{ "selected" if display == "nominal" }}>Nominal (£ at the time)</option>
+          <option value="today" {{ "selected" if display == "today" }}>Today's money</option>
+        </select>
+        <div class="hint">Today's money rescales every figure back to constant purchasing power — it doesn't change tax, depletion, or anything underlying, only how it's displayed.</div>
+      </div>
+    </div>
+  </form>
+</div>
+
+{% if display == "today" %}
+<div class="flash success" style="margin-bottom: 18px;">Figures below are shown in today's money (constant purchasing power) — not the actual nominal £ amounts in those future years.</div>
+{% endif %}
+
+{% if pension_was_locked %}
+<div class="flash {{ 'error' if bridge_shortfall_age else 'success' }}" style="margin-bottom: 18px;">
+  {% if bridge_shortfall_age %}
+  ⚠ At your rate, SIPP/pension accounts are locked until age {{ tax_settings.pension_access_age }} — and from age {{ bridge_shortfall_age }}, your accessible accounts (ISA, etc.) aren't enough to fully bridge the gap. See the table below for the shortfall by year.
+  {% else %}
+  Retiring at {{ profile.retirement_age }} means SIPP/pension accounts are locked until age {{ tax_settings.pension_access_age }} — your accessible accounts (ISA, etc.) bridge the gap in full until then.
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="cards">
+  <div class="card">
+    <div class="stat-label">Annual withdrawal at retirement</div>
+    <div class="stat-value">{{ profile.currency_symbol }}{{ "{:,.0f}".format(first_year.gross_withdrawal) }}</div>
+    <div class="stat-sub">At your {{ profile.withdrawal_rate }}% withdrawal rate, age {{ profile.retirement_age }}</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Tax due (first year)</div>
+    <div class="stat-value">{{ profile.currency_symbol }}{{ "{:,.0f}".format(first_year.tax_due) }}</div>
+    <div class="stat-sub">On {{ profile.currency_symbol }}{{ "{:,.0f}".format(first_year.taxable_income) }} taxable income (SIPP/pension + State Pension only)</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Net income (first year)</div>
+    <div class="stat-value">{{ profile.currency_symbol }}{{ "{:,.0f}".format(first_year.net_income) }}</div>
+    <div class="stat-sub">{{ profile.currency_symbol }}{{ "{:,.0f}".format(first_year.tax_free_withdrawal) }} ISA/other + {{ profile.currency_symbol }}{{ "{:,.0f}".format(first_year.taxable_withdrawal) }} SIPP/pension − tax</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Sustainability at {{ profile.withdrawal_rate }}%</div>
+    {% if depletion_age %}
+    <div class="stat-value" style="color: var(--rust);">Depletes ~age {{ depletion_age }}</div>
+    <div class="stat-sub">Before your projected end age of {{ profile.end_age }}</div>
+    {% else %}
+    <div class="stat-value" style="color: var(--moss);">Sustainable</div>
+    <div class="stat-sub">Through age {{ profile.end_age }}</div>
+    {% endif %}
+  </div>
+  <div class="card">
+    <div class="stat-label">Die with Zero</div>
+    {% if die_with_zero_first_year %}
+    <div class="stat-value">{{ profile.currency_symbol }}{{ "{:,.0f}".format(die_with_zero_first_year.gross_withdrawal) }}</div>
+    <div class="stat-sub">First-year income that smoothly empties your retirement assets by age {{ profile.end_age }}</div>
+    {% else %}
+    <div class="stat-value dim">—</div>
+    <div class="stat-sub">No balance to deplete yet</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="chart-card">
+  <h2>Portfolio value by withdrawal rate</h2>
+  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Each line withdraws a fixed amount each year (set once at retirement, as that rate × your balance then) from retirement assets only. Your configured rate is shown dashed.</p>
+  <canvas id="decumChart" height="110"></canvas>
+</div>
+
+<div class="chart-card">
+  <h2>Withdrawal sources at your rate ({{ profile.withdrawal_rate }}%)</h2>
+  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Each bar is one year's income, split by source — tax-free (ISA/other), taxable (SIPP/pension), and State Pension once it starts (age {{ tax_settings.state_pension_age }}). The hatched/locked period before age {{ tax_settings.pension_access_age }} shows SIPP/pension money simply isn't accessible yet.</p>
+  <canvas id="decumStackChart" height="110"></canvas>
+</div>
+
+{% if die_with_zero_first_year %}
+<div class="chart-card">
+  <h2>Die with Zero</h2>
+  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">What it takes to spend down every retirement account to (almost) nothing by age {{ profile.end_age }} — not leave money unused, not run out early. Each account amortizes itself independently (the same maths behind a mortgage payment, run in reverse) using its own growth rate, starting later if it's pension money locked until age {{ tax_settings.pension_access_age }}. Because it's a constant payment, the amount stays level within each "income source" period and the balance declines smoothly underneath it — it doesn't taper off gradually before the end, the same way a mortgage payment doesn't shrink as you approach payoff. Doesn't currently model contributions continuing into retirement, or the inflation-adjusted withdrawal style used elsewhere on this page.</p>
+  <canvas id="decumDieWithZeroChart" height="110"></canvas>
+</div>
+{% endif %}
+
+<div class="chart-card">
+  <h2>Year by year</h2>
+  <div style="max-height: 420px; overflow-y: auto;">
+    <table class="ledger">
+      <thead>
+        <tr>
+          <th>Age</th>
+          <th>Tax-free (ISA/other)</th>
+          <th>Taxable (SIPP/pension)</th>
+          <th>State Pension</th>
+          <th>Tax due</th>
+          <th>Net income</th>
+          <th>Shortfall</th>
+          <th>Balance left</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for y in years %}
+        <tr class="{{ 'historical' if y.pension_locked }}">
+          <td>{{ y.age }}{% if y.age == tax_settings.pension_access_age %} ●pension unlocked{% endif %}{% if y.age == tax_settings.state_pension_age %} ★State Pension{% endif %}</td>
+          <td>{{ "{:,.0f}".format(y.tax_free_withdrawal) }}</td>
+          <td>{{ "{:,.0f}".format(y.taxable_withdrawal) }}</td>
+          <td>{{ "{:,.0f}".format(y.state_pension) }}</td>
+          <td>{{ "{:,.0f}".format(y.tax_due) }}</td>
+          <td>{{ "{:,.0f}".format(y.net_income) }}</td>
+          <td class="{{ 'diff-negative' if y.bridge_shortfall > 0 else 'dim' }}">{{ "{:,.0f}".format(y.bridge_shortfall) if y.bridge_shortfall > 0 else "—" }}</td>
+          <td>{{ "{:,.0f}".format(y.total_balance) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="hint dim">★ State Pension starts · ●pension unlocked marks when SIPP/pension accounts first become accessible · italic rows are while SIPP/pension is locked.</p>
+</div>
+{% endif %}
+
+<div class="chart-card">
+  <h2>Assumptions</h2>
+  <p class="dim">Prepopulated with current UK figures — change any of these if rules change, or to model your own scenario.</p>
+  <form method="post" action="{{ url_for('decumulation.update_tax_settings') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <h3>Personal allowance</h3>
+    <div class="form-grid">
+      <div class="field">
+        <label>Personal allowance ({{ profile.currency_symbol }})</label>
+        <input type="number" step="1" name="personal_allowance" value="{{ tax_settings.personal_allowance }}" required>
+        <div class="hint">Tax-free income each year, for SIPP/pension/State Pension income — not ISA, which is always tax-free regardless.</div>
+      </div>
+      <div class="field">
+        <label>Taper starts above ({{ profile.currency_symbol }})</label>
+        <input type="number" step="1" name="personal_allowance_taper_threshold" value="{{ tax_settings.personal_allowance_taper_threshold }}" required>
+        <div class="hint">Allowance reduces by £1 for every £2 of income over this.</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:20px;">Income tax bands</h3>
+    <p class="dim" style="font-size:0.85rem; margin-top:-6px;">Thresholds are total income levels, not band widths — e.g. the basic rate applies to income between your allowance and the basic-rate threshold.</p>
+    <div class="form-grid">
+      <div class="field">
+        <label>Basic rate (%)</label>
+        <input type="number" step="0.1" name="basic_rate" value="{{ tax_settings.basic_rate }}" required>
+      </div>
+      <div class="field">
+        <label>Basic rate threshold ({{ profile.currency_symbol }})</label>
+        <input type="number" step="1" name="basic_rate_threshold" value="{{ tax_settings.basic_rate_threshold }}" required>
+      </div>
+      <div class="field">
+        <label>Higher rate (%)</label>
+        <input type="number" step="0.1" name="higher_rate" value="{{ tax_settings.higher_rate }}" required>
+      </div>
+      <div class="field">
+        <label>Higher rate threshold ({{ profile.currency_symbol }})</label>
+        <input type="number" step="1" name="higher_rate_threshold" value="{{ tax_settings.higher_rate_threshold }}" required>
+      </div>
+      <div class="field">
+        <label>Additional rate (%)</label>
+        <input type="number" step="0.1" name="additional_rate" value="{{ tax_settings.additional_rate }}" required>
+        <div class="hint">Applies above the higher-rate threshold.</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:20px;">State Pension</h3>
+    <div class="form-grid">
+      <div class="field">
+        <label>Annual amount ({{ profile.currency_symbol }})</label>
+        <input type="number" step="0.01" name="state_pension_annual" value="{{ tax_settings.state_pension_annual }}" required>
+      </div>
+      <div class="field">
+        <label>Starts at age</label>
+        <input type="number" step="1" name="state_pension_age" value="{{ tax_settings.state_pension_age }}" required>
+      </div>
+    </div>
+
+    <h3 style="margin-top:20px;">Pension access</h3>
+    <div class="form-grid">
+      <div class="field">
+        <label>SIPP/pension accessible from age</label>
+        <input type="number" step="1" name="pension_access_age" value="{{ tax_settings.pension_access_age }}" required>
+        <div class="hint">UK "Normal Minimum Pension Age" — currently 55, legislated to rise to 57 from April 2028. If you retire before this age, withdrawals are modeled as coming from ISA/other accessible accounts first.</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:20px;">Inflation</h3>
+    <div class="form-grid">
+      <div class="field">
+        <label>Assumed annual inflation (%)</label>
+        <input type="number" step="0.1" name="inflation_rate" value="{{ tax_settings.inflation_rate }}" required>
+        <div class="hint">Only used by the "inflation-adjusted" withdrawal style and "today's money" display above — doesn't affect anything else in the app.</div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button type="submit">Save assumptions</button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
+{% block scripts %}
+{% if has_accounts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/decumulation-charts.js') }}"></script>
+{% endif %}
+{% endblock %}

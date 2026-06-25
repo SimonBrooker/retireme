@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Setup · Accounts{% endblock %}
+{% block content %}
+<div class="center-screen">
+  <div class="panel wide">
+    <div class="steps">
+      <span>1 · About you</span>
+      <span>·</span><span class="current">2 · Accounts</span>
+      <span>·</span><span>3 · Inheritance</span>
+    </div>
+    <h1>Add your accounts</h1>
+    <span class="rule"></span>
+    <p class="dim">Add each pot separately — cash savings, ISA, SIPP, workplace pension, property equity, anything else. Each one gets its own growth rate and contribution.</p>
+
+    {% if accounts %}
+    <div style="margin: 18px 0 24px;">
+      {% for a in accounts %}
+      <div class="item-row">
+        <div>
+          <strong>{{ a.name }}</strong>
+          <div class="meta mono">{{ a.type_label() }} · {{ current_user.profile.currency_symbol }}{{ "%.0f"|format(a.current_balance) }} now · {{ a.annual_growth_rate }}% growth · +{{ current_user.profile.currency_symbol }}{{ "%.0f"|format(a.annual_contribution) }}/yr</div>
+        </div>
+        <form method="post" style="margin:0;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="account_id" value="{{ a.id }}">
+          <button type="submit" class="btn-danger">Remove</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-note">No accounts added yet — add at least one below.</div>
+    {% endif %}
+
+    <h3>Add an account</h3>
+    <form method="post" data-account-form>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="form-grid">
+        <div class="field">
+          <label for="name">Name</label>
+          <input type="text" id="name" name="name" placeholder="e.g. Vanguard ISA" required>
+        </div>
+        <div class="field">
+          <label for="type">Type</label>
+          <select id="type" name="type">
+            {% for key, label in account_types %}
+            <option value="{{ key }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="current_balance">Current balance ({{ current_user.profile.currency_symbol }})</label>
+          <input type="number" step="0.01" id="current_balance" name="current_balance" value="0" required>
+        </div>
+        <div class="field">
+          <label for="annual_growth_rate">Annual growth rate (%)</label>
+          <input type="number" step="0.1" id="annual_growth_rate" name="annual_growth_rate" value="5" required>
+        </div>
+        <div class="field" data-contribution-field>
+          <label for="annual_contribution">Additional annual contribution ({{ current_user.profile.currency_symbol }})</label>
+          <input type="number" step="0.01" id="annual_contribution" name="annual_contribution" value="0">
+        </div>
+        <div class="field" data-contribution-field>
+          <label for="contribution_growth_rate">Contribution growth/yr (%)</label>
+          <input type="number" step="0.1" id="contribution_growth_rate" name="contribution_growth_rate" value="0">
+          <div class="hint">E.g. contributions rising with salary or inflation.</div>
+        </div>
+      </div>
+      <div class="checkbox-row" style="margin-top:6px;">
+        <input type="checkbox" id="stop_contributions_at_retirement" name="stop_contributions_at_retirement" checked>
+        <label for="stop_contributions_at_retirement">Stop contributions at retirement</label>
+      </div>
+      <div class="checkbox-row" style="margin-top:6px;">
+        <input type="checkbox" id="include_in_withdrawal_calc" name="include_in_withdrawal_calc" checked>
+        <label for="include_in_withdrawal_calc">Counts as a retirement asset</label>
+      </div>
+      <div class="hint" style="margin: -4px 0 6px 26px;">Untick for things like property — it'll still count toward your total net worth, just not your retirement withdrawal figure.</div>
+      <div class="btn-row">
+        <button type="submit">Add account</button>
+      </div>
+    </form>
+
+    <div class="btn-row">
+      <a href="{{ url_for('setup.profile_step') }}" class="btn btn-ghost">Back</a>
+      <a href="{{ url_for('setup.inheritances_step') }}" class="btn">Continue</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/account-form.js') }}"></script>
+{% endblock %}

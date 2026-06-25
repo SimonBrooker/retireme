@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Create your account{% endblock %}
+{% block content %}
+<div class="center-screen">
+  <div class="panel">
+    <h1>Open your ledger</h1>
+    <span class="rule"></span>
+    <p class="dim">This is a single-user app. Set a username and password — the password is hashed before it's stored, never kept in plain text.</p>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="field">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" value="{{ username }}" required autofocus>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required minlength="8">
+        <div class="hint">At least 8 characters.</div>
+      </div>
+      <div class="field">
+        <label for="confirm">Confirm password</label>
+        <input type="password" id="confirm" name="confirm" required minlength="8">
+      </div>
+      <button type="submit">Create account &amp; continue</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

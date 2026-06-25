@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Set up two-factor authentication{% endblock %}
+{% block content %}
+<h1>Set up two-factor authentication</h1>
+<p class="dim">Adds a second step at login: your password, plus a 6-digit code from an authenticator app (Google Authenticator, Authy, 1Password, etc.).</p>
+
+<div class="chart-card">
+  <h2>1. Scan this code</h2>
+  {% if qr_svg %}
+  <div class="qr-wrap">{{ qr_svg | safe }}</div>
+  {% else %}
+  <p class="dim">QR rendering isn't available right now — just enter the key manually below instead, that works the same way.</p>
+  {% endif %}
+
+  <h3 style="margin-top:20px;">Or enter this key manually</h3>
+  <p class="dim mono" style="word-break: break-all; font-size: 1rem;">{{ secret }}</p>
+</div>
+
+<div class="chart-card">
+  <h2>2. Confirm it worked</h2>
+  <p class="dim">Enter the current 6-digit code your app is showing.</p>
+  <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="field" style="max-width:200px;">
+      <label for="code">Authentication code</label>
+      <input type="text" id="code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" required autofocus>
+    </div>
+    <div class="btn-row">
+      <button type="submit">Enable two-factor authentication</button>
+    </div>
+  </form>
+  <form method="post" action="{{ url_for('settings.mfa_cancel_setup') }}" style="margin-top:8px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit" class="btn-ghost">Cancel</button>
+  </form>
+</div>
+
+<p class="dim" style="font-size: 0.85rem;">Keep in mind: if you ever lose access to your authenticator app, server access via <span class="mono">docker exec</span> and <span class="mono">flask reset-password</span> can always get you back in — it clears 2FA along with the password reset.</p>
+{% endblock %}

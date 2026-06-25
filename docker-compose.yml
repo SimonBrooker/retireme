@@ -1,0 +1,13 @@
+services:
+  retireme:
+    build: .
+    image: retireme:latest
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/data
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-change-this-to-a-long-random-string}
+      - DATABASE_PATH=/data/retirement.db
+      - SECURE_COOKIES=${SECURE_COOKIES:-false}
+    restart: unless-stopped
