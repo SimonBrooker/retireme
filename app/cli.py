@@ -38,8 +38,8 @@ def register_cli(app):
 
         click.echo(f"Resetting credentials for '{user.username}'.")
         new_password = click.prompt("New password", hide_input=True, confirmation_prompt=True)
-        if len(new_password) < 8:
-            click.echo("Password must be at least 8 characters. Aborted.")
+        if len(new_password) < 12:
+            click.echo("Password must be at least 12 characters. Aborted.")
             return
 
         user.set_password(new_password)

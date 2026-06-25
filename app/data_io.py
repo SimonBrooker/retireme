@@ -82,6 +82,18 @@ def validate_payload(payload):
     if "accounts" not in payload or not isinstance(payload["accounts"], list):
         raise ImportValidationError("That file doesn't look like a retireme export (missing 'accounts').")
 
+    MAX_ACCOUNTS = 500
+    MAX_SNAPSHOTS_PER_ACCOUNT = 200
+    MAX_INHERITANCES = 200
+    MAX_CHILDREN = 50
+
+    if len(payload["accounts"]) > MAX_ACCOUNTS:
+        raise ImportValidationError(f"Too many accounts in file (max {MAX_ACCOUNTS}).")
+    if len(payload.get("inheritances", [])) > MAX_INHERITANCES:
+        raise ImportValidationError(f"Too many inheritances in file (max {MAX_INHERITANCES}).")
+    if len(payload.get("children", [])) > MAX_CHILDREN:
+        raise ImportValidationError(f"Too many children in file (max {MAX_CHILDREN}).")
+
     profile = payload["profile"]
     for field in REQUIRED_PROFILE_FIELDS:
         if field not in profile:
@@ -123,6 +135,10 @@ def validate_payload(payload):
             raise ImportValidationError(f"Account \"{acc.get('name', '?')}\" balance is out of range.")
         if not (-100.0 <= growth <= 100.0):
             raise ImportValidationError(f"Account \"{acc.get('name', '?')}\" growth rate must be between -100% and 100%.")
+        if len(acc.get("snapshots", [])) > MAX_SNAPSHOTS_PER_ACCOUNT:
+            raise ImportValidationError(
+                f"Too many snapshots on account \"{acc.get('name', '?')}\" (max {MAX_SNAPSHOTS_PER_ACCOUNT})."
+            )
         for s_idx, snap in enumerate(acc.get("snapshots", [])):
             if "age" not in snap or "balance" not in snap:
                 raise ImportValidationError(

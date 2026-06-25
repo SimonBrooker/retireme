@@ -7,7 +7,7 @@ services:
     volumes:
       - ./data:/data
     environment:
-      - SECRET_KEY=${SECRET_KEY:-change-this-to-a-long-random-string}
+      - SECRET_KEY=${SECRET_KEY}
       - DATABASE_PATH=/data/retirement.db
       - SECURE_COOKIES=${SECURE_COOKIES:-false}
     restart: unless-stopped

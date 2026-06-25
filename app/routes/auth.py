@@ -103,6 +103,7 @@ def login():
             if user.totp_enabled:
                 session["pending_mfa_user_id"] = user.id
                 session["pending_mfa_next"] = next_param
+                session["pending_mfa_expires"] = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
                 return redirect(url_for("auth.verify_mfa"))
             current_app.logger.info(f"Successful login: '{user.username}' from {request.remote_addr}")
             login_user(user)
@@ -136,10 +137,15 @@ def verify_mfa():
     if not user_id:
         return redirect(url_for("auth.login"))
 
+    expires_raw = session.get("pending_mfa_expires")
+    if not expires_raw or datetime.fromisoformat(expires_raw) < datetime.now(timezone.utc):
+        session.clear()
+        flash("Your login session expired — please log in again.", "error")
+        return redirect(url_for("auth.login"))
+
     user = User.query.get(user_id)
     if not user or not user.totp_enabled:
-        session.pop("pending_mfa_user_id", None)
-        session.pop("pending_mfa_next", None)
+        session.clear()
         return redirect(url_for("auth.login"))
 
     if request.method == "POST":
@@ -193,8 +199,7 @@ def verify_mfa():
 
 @auth_bp.route("/login/cancel")
 def cancel_mfa():
-    session.pop("pending_mfa_user_id", None)
-    session.pop("pending_mfa_next", None)
+    session.clear()
     return redirect(url_for("auth.login"))
 
 

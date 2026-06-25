@@ -11,7 +11,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from app.extensions import db, login_manager, limiter
 
 
-APP_VERSION = "0.8"
+APP_VERSION = "0.9"
 
 
 def create_app():
@@ -57,6 +57,7 @@ def create_app():
     # cookie is silently dropped by the browser over HTTP — that would lock
     # those installs out of login entirely. Set SECURE_COOKIES=true once you
     # have real HTTPS in front of this (nginx + a valid cert, Cloudflare, etc).
+    app.config["SESSION_COOKIE_NAME"] = "s"
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SECURE_COOKIES", "false").lower() == "true"

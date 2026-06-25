@@ -7,13 +7,20 @@ from app.models import Account, Inheritance
 inheritances_bp = Blueprint("inheritances", __name__, url_prefix="/inheritances")
 
 
-def _inheritance_from_form(inh, form):
+def _inheritance_from_form(inh, form, user_id):
+    from app.models import Account
     target_id = form.get("target_account_id") or None
     inh.source_name = form["source_name"].strip() or "Inheritance"
     inh.expected_age = int(form["expected_age"])
     inh.gross_amount = float(form["gross_amount"])
     inh.share_percent = float(form.get("share_percent") or 100)
-    inh.target_account_id = int(target_id) if target_id else None
+    if target_id:
+        account = Account.query.filter_by(id=int(target_id), user_id=user_id).first()
+        if not account:
+            raise ValueError("Invalid target account.")
+        inh.target_account_id = account.id
+    else:
+        inh.target_account_id = None
     inh.notes = (form.get("notes") or "").strip() or None
     return inh
 
@@ -34,7 +41,7 @@ def index():
 @login_required
 def add():
     try:
-        inh = _inheritance_from_form(Inheritance(user_id=current_user.id), request.form)
+        inh = _inheritance_from_form(Inheritance(user_id=current_user.id), request.form, current_user.id)
         db.session.add(inh)
         db.session.commit()
         flash(f'Added "{inh.source_name}".', "success")
@@ -50,7 +57,7 @@ def edit(inheritance_id):
         id=inheritance_id, user_id=current_user.id
     ).first_or_404()
     try:
-        _inheritance_from_form(inh, request.form)
+        _inheritance_from_form(inh, request.form, current_user.id)
         db.session.commit()
         flash(f'Updated "{inh.source_name}".', "success")
     except (ValueError, KeyError):
