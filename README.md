@@ -163,7 +163,7 @@ Each account has a "counts as a retirement asset" flag. **Total net worth** sums
 ## Notes / things you might want to change
 
 - **Single user by default.** The data model already scopes everything by `user_id`, so multi-user support mostly just needs a normal sign-up flow instead of the current "only one account can ever be created" guard in `auth.py` — but for a personal tracker, one password is usually all you want.
-- **Charts use a CDN.** `dashboard.html` loads Chart.js from jsDelivr. If you're running this somewhere with no outbound internet access, download `chart.umd.min.js` yourself into `app/static/js/` and change the `<script>` tag in `dashboard.html` to point at it.
+- **Charts are self-hosted.** Chart.js is bundled directly in `app/static/js/` — no CDN dependency, works fully offline.
 - **No currency setting yet** — everything assumes £. Easy to add a `currency` field to `Profile` and swap the `£` literals in templates/JS for it if you need other currencies.
 - **No currency conversion** — the currency picker (Settings → Currency) only changes which symbol is shown; it doesn't convert or rescale any of your existing figures. If you switch from GBP to USD, a balance of 50,000 just becomes $50,000 — re-enter figures yourself if you actually mean a different amount of money.
 - **Backups**: Settings → Data management → Export gives you a portable JSON snapshot of everything except your password — do this periodically and keep the file somewhere safe. The underlying SQLite file (`data/retirement.db`) is the full source of truth (including your password hash) if you want a complete file-level backup instead.

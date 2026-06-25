@@ -1,4 +1,5 @@
 from datetime import datetime, timezone, timedelta
+from urllib.parse import urlparse
 
 from flask import Blueprint, render_template, redirect, url_for, request, flash, session, current_app
 from flask_login import login_user, logout_user, login_required, current_user
@@ -9,6 +10,12 @@ from app.totp_utils import verify_code
 
 MAX_FAILED_ATTEMPTS = 5
 LOCKOUT_DURATION = timedelta(minutes=15)
+
+
+def _safe_next(url):
+    if url and urlparse(url).netloc == "":
+        return url
+    return None
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -86,7 +93,7 @@ def login():
                 return redirect(url_for("auth.verify_mfa"))
             current_app.logger.info(f"Successful login: '{user.username}' from {request.remote_addr}")
             login_user(user)
-            next_url = request.args.get("next")
+            next_url = _safe_next(request.args.get("next"))
             return redirect(next_url or url_for("dashboard.index"))
 
         if user:
@@ -128,7 +135,7 @@ def verify_mfa():
             current_app.logger.info(
                 f"Successful MFA verification: '{user.username}' from {request.remote_addr}"
             )
-            next_url = session.pop("pending_mfa_next", "") or None
+            next_url = _safe_next(session.pop("pending_mfa_next", "") or None)
             session.pop("pending_mfa_user_id", None)
             login_user(user)
             return redirect(next_url or url_for("dashboard.index"))

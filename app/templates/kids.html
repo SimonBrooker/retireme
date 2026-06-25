@@ -103,6 +103,6 @@
 <p class="dim" style="font-size:0.85rem;">Add their JISA or JSIPP from the <a href="{{ url_for('accounts.index') }}">Accounts</a> page once they're added here.</p>
 {% endblock %}
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/kids-charts.js') }}"></script>
 {% endblock %}
