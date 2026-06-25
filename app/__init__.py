@@ -11,7 +11,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from app.extensions import db, login_manager, limiter
 
 
-APP_VERSION = "0.6"
+APP_VERSION = "0.7"
 
 
 def create_app():
@@ -263,6 +263,9 @@ def _ensure_schema():
             conn.commit()
         if "pending_totp_expires_at" not in user_cols:
             conn.execute(text("ALTER TABLE user ADD COLUMN pending_totp_expires_at DATETIME"))
+            conn.commit()
+        if "failed_mfa_attempts" not in user_cols:
+            conn.execute(text("ALTER TABLE user ADD COLUMN failed_mfa_attempts INTEGER DEFAULT 0"))
             conn.commit()
 
         account_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(account)"))}

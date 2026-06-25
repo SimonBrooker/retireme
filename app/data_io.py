@@ -87,6 +87,23 @@ def validate_payload(payload):
         if field not in profile:
             raise ImportValidationError(f"Profile section is missing required field '{field}'.")
 
+    try:
+        current_age = int(profile["current_age"])
+        retirement_age = int(profile["retirement_age"])
+        end_age = int(profile["end_age"])
+        withdrawal_rate = float(profile["withdrawal_rate"])
+    except (ValueError, TypeError):
+        raise ImportValidationError("Profile age and rate fields must be numbers.")
+
+    if not (1 <= current_age <= 120):
+        raise ImportValidationError(f"current_age must be between 1 and 120 (got {current_age}).")
+    if not (current_age < retirement_age <= 120):
+        raise ImportValidationError(f"retirement_age must be between current_age and 120 (got {retirement_age}).")
+    if not (retirement_age < end_age <= 150):
+        raise ImportValidationError(f"end_age must be between retirement_age and 150 (got {end_age}).")
+    if not (0.0 < withdrawal_rate <= 100.0):
+        raise ImportValidationError(f"withdrawal_rate must be between 0 and 100 (got {withdrawal_rate}).")
+
     for idx, acc in enumerate(payload["accounts"]):
         if not isinstance(acc, dict):
             raise ImportValidationError(f"Account #{idx + 1} isn't a valid object.")
@@ -97,10 +114,34 @@ def validate_payload(payload):
             raise ImportValidationError(
                 f"Account \"{acc.get('name', '?')}\" has an unknown type '{acc['type']}'."
             )
+        try:
+            balance = float(acc["current_balance"])
+            growth = float(acc["annual_growth_rate"])
+        except (ValueError, TypeError):
+            raise ImportValidationError(f"Account \"{acc.get('name', '?')}\" has non-numeric balance or growth rate.")
+        if not (-1e9 <= balance <= 1e9):
+            raise ImportValidationError(f"Account \"{acc.get('name', '?')}\" balance is out of range.")
+        if not (-100.0 <= growth <= 100.0):
+            raise ImportValidationError(f"Account \"{acc.get('name', '?')}\" growth rate must be between -100% and 100%.")
         for s_idx, snap in enumerate(acc.get("snapshots", [])):
             if "age" not in snap or "balance" not in snap:
                 raise ImportValidationError(
                     f"Snapshot #{s_idx + 1} on account \"{acc.get('name', '?')}\" is missing age/balance."
+                )
+            try:
+                snap_age = int(snap["age"])
+                snap_bal = float(snap["balance"])
+            except (ValueError, TypeError):
+                raise ImportValidationError(
+                    f"Snapshot #{s_idx + 1} on account \"{acc.get('name', '?')}\" has non-numeric age/balance."
+                )
+            if not (1 <= snap_age <= 150):
+                raise ImportValidationError(
+                    f"Snapshot #{s_idx + 1} on account \"{acc.get('name', '?')}\" age must be between 1 and 150."
+                )
+            if not (-1e9 <= snap_bal <= 1e9):
+                raise ImportValidationError(
+                    f"Snapshot #{s_idx + 1} on account \"{acc.get('name', '?')}\" balance is out of range."
                 )
 
     for idx, inh in enumerate(payload.get("inheritances", [])):

@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -32,13 +32,14 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     totp_secret = db.Column(db.String(32), nullable=True)
     totp_enabled = db.Column(db.Boolean, default=False, nullable=False)
     failed_login_attempts = db.Column(db.Integer, default=0, nullable=False)
     locked_until = db.Column(db.DateTime, nullable=True)
     pending_totp_secret = db.Column(db.String(32), nullable=True)
     pending_totp_expires_at = db.Column(db.DateTime, nullable=True)
+    failed_mfa_attempts = db.Column(db.Integer, default=0, nullable=False)
 
     profile = db.relationship(
         "Profile", backref="user", uselist=False, cascade="all, delete-orphan"
@@ -191,7 +192,7 @@ class Snapshot(db.Model):
     age = db.Column(db.Integer, nullable=False)
     balance = db.Column(db.Float, nullable=False)
     note = db.Column(db.String(255), nullable=True)
-    recorded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    recorded_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class Inheritance(db.Model):
