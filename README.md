@@ -64,16 +64,23 @@ This has been hardened against the OWASP Top 10, with the app-level pieces below
 - **CSRF protection** on every form (signed per-session token, checked on every POST/PUT/PATCH/DELETE)
 - **Security headers** on every response: Content-Security-Policy (no `unsafe-inline` for scripts), X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, and HSTS when served over HTTPS
 - **No inline JavaScript** anywhere — this also closed a real injection issue: account/child/inheritance names were previously interpolated into inline `onsubmit="confirm('...')"` handlers, and a name containing `');` could break out of the JS string and execute arbitrary script (HTML-escaping doesn't protect against this — the browser decodes entities before handing inline-handler content to the JS engine). Everything now uses `data-confirm`/`data-auto-submit` attributes read by an external script instead, which can't be escaped out of this way
-- **Rate limiting** on login, MFA verification, and MFA setup (10 attempts/minute/IP) — there was no brute-force protection on these before
-- **Security event logging** to stdout (`docker logs`) — login successes/failures, MFA changes, password changes, data export/import/full-reset
+- **Rate limiting** on all routes (60 requests/minute/IP globally), with tighter limits on login, MFA verification, and MFA setup (10 attempts/minute/IP)
+- **Account lockout** after 5 consecutive failed login attempts — locked for 15 minutes, with a clear message showing how long remains. Counter resets on successful login
+- **30-minute idle session timeout** — any session with no activity for 30 minutes is invalidated server-side; the session cookie is also wiped when the browser closes
+- **Minimum 12-character passwords** (NIST SP 800-63B) enforced at account creation and password change
+- **Logout requires a POST** with a CSRF token — prevents logout CSRF via `<img>` tags or link tricks
+- **Security event logging** to stdout (`docker logs`) — login successes/failures, account lockouts, MFA changes, password changes, data export/import/full-reset
 - **Secure cookie flags** — `HttpOnly` always, `SameSite=Lax` always, `Secure` when `SECURE_COOKIES=true` (see below)
 - **`ProxyFix`** middleware so the app correctly recognizes HTTPS/client IP when sitting behind nginx
 - **Upload size cap** (5 MB) on the data-import endpoint
-- A startup warning if `SECRET_KEY` is still the built-in default
+- **Mandatory `SECRET_KEY`** — the app refuses to start if `SECRET_KEY` is not set, with a clear error explaining how to generate one
 
 **What you need to do if exposing this to the internet:**
 
-1. **Set `SECRET_KEY`** to a real random value (see [Quick start](#quick-start-docker)) — never run with the default outside your own LAN.
+1. **Set `SECRET_KEY`** to a real random value — the app will not start without it. Generate one with:
+   ```bash
+   python -c "import secrets; print(secrets.token_hex(32))"
+   ```
 2. **Set `SECURE_COOKIES=true`** once you have real HTTPS in front of this. Leave it `false` for plain-HTTP LAN use — a `Secure` cookie is silently dropped by the browser over HTTP and you won't be able to log in.
 3. **Use Cloudflare in "Full (Strict)" SSL mode, not "Flexible."** Flexible mode only encrypts visitor→Cloudflare; the Cloudflare→origin leg stays plain HTTP, so anyone who can see traffic between Cloudflare and your server (e.g. on the same network/host) sees it unencrypted regardless of the padlock in the visitor's browser. Nginx Proxy Manager can issue a free Let's Encrypt cert for the origin so Full (Strict) works properly.
 4. **Restrict your origin firewall to Cloudflare's IP ranges** (published at [cloudflare.com/ips](https://www.cloudflare.com/ips/)) on whatever ports nginx listens on. Without this, anyone who discovers your real origin IP (and there are ways to find it) can hit your server directly and skip Cloudflare's proxying, rate limiting, and WAF entirely — the orange cloud only protects you if it's the *only* path in.
@@ -86,6 +93,27 @@ This has been hardened against the OWASP Top 10, with the app-level pieces below
 - The SQLite file itself is not encrypted at rest. Anyone with filesystem access to the host can read it directly (the password field inside is hashed; everything else isn't). This is consistent with the single-user, self-hosted threat model — if someone has that level of server access, the database file is already the least of your problems.
 - Security event logs go to stdout only — there's no persistent, rotated log file or alerting. Fine for a personal app you'd notice being down; not a substitute for real monitoring if that matters to you.
 - No CAPTCHA or device fingerprinting on login — rate limiting was judged sufficient for a single-account app; revisit if you ever make this multi-user.
+
+## Environment variables
+
+All configuration is via environment variables (set in `.env` or passed to `docker run`/`docker compose`).
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `SECRET_KEY` | **Yes** | — | Long random string used to sign session cookies. App refuses to start without it. Generate with `python -c "import secrets; print(secrets.token_hex(32))"` |
+| `DATABASE_PATH` | No | `/data/retirement.db` | Full path to the SQLite database file inside the container. Change if you want to mount the volume at a different path |
+| `SECURE_COOKIES` | No | `false` | Set to `true` once this is behind real HTTPS. When `true`, session cookies get the `Secure` flag and are only sent over HTTPS. Leave `false` for plain-HTTP LAN use — a `Secure` cookie is silently dropped over HTTP and you won't be able to log in |
+
+## Volume permissions
+
+The `/data` directory inside the container holds your SQLite database. When mounting it as a host volume, restrict access to the app user only:
+
+```bash
+mkdir -p ./data
+chmod 700 ./data
+```
+
+Without this, any process or user on the host with read access to the volume path can read the raw database file directly (passwords are hashed inside it, but all financial data is not). If you're running in a rootless Docker setup this is handled automatically; check with `ls -la ./data`.
 
 ## Running without Docker (development)
 

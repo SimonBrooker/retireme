@@ -19,7 +19,26 @@ def create_app():
     # terminated upstream (nginx, behind Cloudflare or otherwise).
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
-    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
+    secret_key = os.environ.get("SECRET_KEY", "").strip()
+    if not secret_key:
+        raise RuntimeError(
+            "\n\n"
+            "  FATAL: SECRET_KEY environment variable is not set.\n"
+            "\n"
+            "  Sessions can be forged without a real secret key, which would allow\n"
+            "  anyone to authenticate as any user without a password.\n"
+            "\n"
+            "  Fix: generate a strong random key and set it before starting the app:\n"
+            "\n"
+            "    python -c \"import secrets; print(secrets.token_hex(32))\"\n"
+            "\n"
+            "  Then set it in your environment or .env file:\n"
+            "\n"
+            "    SECRET_KEY=<the value above>\n"
+            "\n"
+            "  Never reuse the same key across deployments or commit it to git.\n"
+        )
+    app.config["SECRET_KEY"] = secret_key
     db_path = os.environ.get("DATABASE_PATH", "/data/retirement.db")
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
@@ -39,16 +58,8 @@ def create_app():
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SECURE_COOKIES", "false").lower() == "true"
 
-    # Expire idle sessions after 30 minutes. The cookie itself is session-scoped
-    # (no persistent=True) so it's also wiped when the browser closes.
-    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    if app.config["SECRET_KEY"] == "dev-secret-change-me":
-        app.logger.warning(
-            "SECRET_KEY is using the built-in default — sessions can be forged. "
-            "Set a real random SECRET_KEY before exposing this app to the internet."
-        )
     if not app.config["SESSION_COOKIE_SECURE"]:
         app.logger.info(
             "SECURE_COOKIES is not enabled — session cookies will be sent over plain HTTP. "
@@ -230,6 +241,14 @@ def _ensure_schema():
             conn.execute(
                 text("ALTER TABLE user ADD COLUMN totp_enabled BOOLEAN DEFAULT 0")
             )
+            conn.commit()
+        if "failed_login_attempts" not in user_cols:
+            conn.execute(
+                text("ALTER TABLE user ADD COLUMN failed_login_attempts INTEGER DEFAULT 0")
+            )
+            conn.commit()
+        if "locked_until" not in user_cols:
+            conn.execute(text("ALTER TABLE user ADD COLUMN locked_until DATETIME"))
             conn.commit()
 
         account_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(account)"))}

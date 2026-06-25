@@ -85,8 +85,8 @@ def change_password():
     if not current_user.check_password(current_password):
         current_app.logger.warning(f"Failed password-change attempt for '{current_user.username}'")
         flash("Current password is incorrect.", "error")
-    elif len(new_password) < 8:
-        flash("New password must be at least 8 characters.", "error")
+    elif len(new_password) < 12:
+        flash("New password must be at least 12 characters.", "error")
     elif new_password != confirm:
         flash("New passwords don't match.", "error")
     else:
@@ -173,7 +173,7 @@ def export_data():
     return Response(
         body,
         mimetype="application/json",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 

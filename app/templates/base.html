@@ -21,7 +21,10 @@
       </nav>
       <div class="logout">
         <span class="logout-user mono dim">{{ current_user.username }}</span>
-        <a href="{{ url_for('auth.logout') }}" class="btn btn-ghost btn-small">Log out</a>
+        <form method="POST" action="{{ url_for('auth.logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit" class="btn btn-ghost btn-small">Log out</button>
+        </form>
       </div>
     </aside>
     {% endif %}

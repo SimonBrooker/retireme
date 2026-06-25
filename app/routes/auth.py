@@ -1,9 +1,14 @@
+from datetime import datetime, timezone, timedelta
+
 from flask import Blueprint, render_template, redirect, url_for, request, flash, session, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 
 from app.extensions import db, limiter
 from app.models import User, Profile
 from app.totp_utils import verify_code
+
+MAX_FAILED_ATTEMPTS = 5
+LOCKOUT_DURATION = timedelta(minutes=15)
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -23,8 +28,8 @@ def create_account():
         error = None
         if not username:
             error = "Choose a username."
-        elif len(password) < 8:
-            error = "Password must be at least 8 characters."
+        elif len(password) < 12:
+            error = "Password must be at least 12 characters."
         elif password != confirm:
             error = "Passwords don't match."
 
@@ -58,7 +63,23 @@ def login():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         user = User.query.filter_by(username=username).first()
+
+        now = datetime.now(timezone.utc)
+
+        if user and user.locked_until:
+            locked_until = user.locked_until.replace(tzinfo=timezone.utc) if user.locked_until.tzinfo is None else user.locked_until
+            if now < locked_until:
+                remaining = int((locked_until - now).total_seconds() // 60) + 1
+                current_app.logger.warning(
+                    f"Login attempt on locked account '{username}' from {request.remote_addr}"
+                )
+                flash(f"Account locked due to too many failed attempts. Try again in {remaining} minute(s).", "error")
+                return render_template("login.html")
+
         if user and user.check_password(password):
+            user.failed_login_attempts = 0
+            user.locked_until = None
+            db.session.commit()
             if user.totp_enabled:
                 session["pending_mfa_user_id"] = user.id
                 session["pending_mfa_next"] = request.args.get("next") or ""
@@ -67,6 +88,19 @@ def login():
             login_user(user)
             next_url = request.args.get("next")
             return redirect(next_url or url_for("dashboard.index"))
+
+        if user:
+            user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+            if user.failed_login_attempts >= MAX_FAILED_ATTEMPTS:
+                user.locked_until = now + LOCKOUT_DURATION
+                db.session.commit()
+                current_app.logger.warning(
+                    f"Account '{username}' locked after {MAX_FAILED_ATTEMPTS} failed attempts from {request.remote_addr}"
+                )
+                flash(f"Too many failed attempts — account locked for {int(LOCKOUT_DURATION.total_seconds() // 60)} minutes.", "error")
+                return render_template("login.html")
+            db.session.commit()
+
         current_app.logger.warning(
             f"Failed login attempt for username '{username}' from {request.remote_addr}"
         )
@@ -113,7 +147,7 @@ def cancel_mfa():
     return redirect(url_for("auth.login"))
 
 
-@auth_bp.route("/logout")
+@auth_bp.route("/logout", methods=["POST"])
 @login_required
 def logout():
     current_app.logger.info(f"Logout: '{current_user.username}' from {request.remote_addr}")

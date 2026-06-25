@@ -35,6 +35,8 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     totp_secret = db.Column(db.String(32), nullable=True)
     totp_enabled = db.Column(db.Boolean, default=False, nullable=False)
+    failed_login_attempts = db.Column(db.Integer, default=0, nullable=False)
+    locked_until = db.Column(db.DateTime, nullable=True)
 
     profile = db.relationship(
         "Profile", backref="user", uselist=False, cascade="all, delete-orphan"
