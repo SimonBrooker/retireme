@@ -11,6 +11,9 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from app.extensions import db, login_manager, limiter
 
 
+APP_VERSION = "0.3"
+
+
 def create_app():
     app = Flask(__name__)
 
@@ -60,6 +63,7 @@ def create_app():
 
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    app.logger.info(f"retireme v{APP_VERSION} starting — if building a new Docker image, ensure APP_VERSION in app/__init__.py and Dockerfile ENV APP_VERSION are both updated.")
     if not app.config["SESSION_COOKIE_SECURE"]:
         app.logger.info(
             "SECURE_COOKIES is not enabled — session cookies will be sent over plain HTTP. "
@@ -101,6 +105,10 @@ def create_app():
     @app.context_processor
     def inject_user():
         return {"current_user": current_user}
+
+    @app.context_processor
+    def inject_version():
+        return {"app_version": APP_VERSION}
 
     @app.context_processor
     def inject_theme():
@@ -188,7 +196,7 @@ def create_app():
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.gstatic.com; "
             "img-src 'self' data:; "
-            "connect-src 'self'; "
+            "connect-src 'self' https://api.github.com; "
             "base-uri 'self'; "
             "form-action 'self'; "
             "frame-ancestors 'none'"
