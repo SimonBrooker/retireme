@@ -4,6 +4,11 @@
 <h1>Actual history</h1>
 <p class="dim">Once you know what an account's balance actually was at a given age — because the market did better or worse than your assumed growth rate — record it here. It overrides the projection for that age and becomes the new starting point for every year after it.</p>
 
+<div id="history-chart-data"
+     data-charts="{{ chart_data_json | e }}"
+     data-currency="{{ currency_symbol | e }}"
+     style="display:none;"></div>
+
 <div class="chart-card">
   <h2>Record an actual balance</h2>
   <form method="post" action="{{ url_for('history.add') }}">
@@ -41,6 +46,7 @@
 <div class="chart-card">
   <h3>{{ a.name }} <span class="dim mono" style="font-size:0.75rem;">({{ a.type_label() }})</span></h3>
   {% if a.snapshots %}
+  <canvas id="history-chart-{{ a.id }}" height="90" style="margin-bottom:16px;"></canvas>
   <table class="ledger">
     <thead>
       <tr><th>Age</th><th>Actual balance</th><th>Note</th><th></th></tr>
@@ -53,7 +59,7 @@
         <td style="text-align:left;" class="dim">{{ s.note or "" }}</td>
         <td>
           <form method="post" action="{{ url_for('history.delete', snapshot_id=s.id) }}" style="margin:0;">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <button type="submit" class="btn-danger" style="padding:4px 10px; font-size:0.78rem;">Remove</button>
           </form>
         </td>
@@ -67,4 +73,8 @@
 </div>
 {% endfor %}
 
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/history-charts.js') }}"></script>
 {% endblock %}
