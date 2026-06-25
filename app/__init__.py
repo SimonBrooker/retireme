@@ -2,9 +2,10 @@ import os
 import logging
 import secrets
 import hmac
+from datetime import datetime, timezone, timedelta
 
 from flask import Flask, redirect, request, url_for, session, abort
-from flask_login import current_user
+from flask_login import current_user, logout_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from app.extensions import db, login_manager, limiter
@@ -37,6 +38,10 @@ def create_app():
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SECURE_COOKIES", "false").lower() == "true"
+
+    # Expire idle sessions after 30 minutes. The cookie itself is session-scoped
+    # (no persistent=True) so it's also wiped when the browser closes.
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     if app.config["SECRET_KEY"] == "dev-secret-change-me":
@@ -107,6 +112,23 @@ def create_app():
         if "csrf_token" not in session:
             session["csrf_token"] = secrets.token_hex(32)
         return {"csrf_token": session["csrf_token"]}
+
+    IDLE_TIMEOUT = timedelta(minutes=30)
+
+    @app.before_request
+    def check_session_idle():
+        if not current_user.is_authenticated:
+            return None
+        now = datetime.now(timezone.utc)
+        last_active = session.get("last_active")
+        if last_active:
+            last_active_dt = datetime.fromisoformat(last_active)
+            if now - last_active_dt > IDLE_TIMEOUT:
+                logout_user()
+                session.clear()
+                return redirect(url_for("auth.login"))
+        session["last_active"] = now.isoformat()
+        return None
 
     @app.before_request
     def csrf_protect():
