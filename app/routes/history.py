@@ -48,7 +48,7 @@ def _build_chart_data(profile, accounts, inheritances):
         chart_data[a.id] = {
             "ages": ages,
             "projected": [
-                round(clean_by_age[age].get(a.id) or 0, 2) for age in ages
+                round((clean_by_age.get(age, {}).get(a.id) or 0), 2) for age in ages
             ],
             "adjusted": [
                 round((actual_by_age[age].balances.get(a.id) or 0), 2) for age in ages

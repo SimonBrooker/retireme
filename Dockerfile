@@ -15,7 +15,7 @@ VOLUME ["/data"]
 ENV DATABASE_PATH=/data/retirement.db
 ENV FLASK_APP=run.py
 # UPDATE APP_VERSION in app/__init__.py before building a new release
-ENV APP_VERSION=0.5
+ENV APP_VERSION=0.6
 EXPOSE 5000
 
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "run:app"]
