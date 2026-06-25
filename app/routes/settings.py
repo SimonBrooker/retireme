@@ -1,7 +1,9 @@
 import json
-from datetime import datetime, date, timezone
+from datetime import datetime, date, timezone, timedelta
 
-from flask import Blueprint, render_template, redirect, url_for, request, flash, Response, session, current_app
+TOTP_SETUP_EXPIRY = timedelta(minutes=10)
+
+from flask import Blueprint, render_template, redirect, url_for, request, flash, Response, current_app
 from flask_login import login_required, current_user
 
 from app.extensions import db, limiter
@@ -106,16 +108,22 @@ def mfa_setup():
         flash("Two-factor authentication is already enabled.", "error")
         return redirect(url_for("settings.index"))
 
+    now = datetime.now(timezone.utc)
+
     if request.method == "POST":
-        secret = session.get("pending_totp_secret")
+        expires = current_user.pending_totp_expires_at
+        if expires:
+            expires = expires.replace(tzinfo=timezone.utc) if expires.tzinfo is None else expires
+        secret = current_user.pending_totp_secret if (expires and now < expires) else None
         code = request.form.get("code", "")
         if not secret:
             flash("That setup session expired — scan the new code below.", "error")
         elif verify_code(secret, code):
             current_user.totp_secret = secret
             current_user.totp_enabled = True
+            current_user.pending_totp_secret = None
+            current_user.pending_totp_expires_at = None
             db.session.commit()
-            session.pop("pending_totp_secret", None)
             current_app.logger.info(f"Two-factor authentication enabled for '{current_user.username}'")
             flash("Two-factor authentication is now enabled.", "success")
             return redirect(url_for("settings.index"))
@@ -124,11 +132,15 @@ def mfa_setup():
 
     # Keep the same pending secret across a failed attempt so the QR the
     # person already scanned is still valid; only generate a fresh one if
-    # there's no setup in progress.
-    secret = session.get("pending_totp_secret")
-    if not secret:
-        secret = generate_secret()
-        session["pending_totp_secret"] = secret
+    # there's no setup in progress or the previous one expired.
+    expires = current_user.pending_totp_expires_at
+    if expires:
+        expires = expires.replace(tzinfo=timezone.utc) if expires.tzinfo is None else expires
+    if not current_user.pending_totp_secret or not expires or now >= expires:
+        current_user.pending_totp_secret = generate_secret()
+        current_user.pending_totp_expires_at = now + TOTP_SETUP_EXPIRY
+        db.session.commit()
+    secret = current_user.pending_totp_secret
 
     uri = provisioning_uri(secret, current_user.username)
     qr_svg = generate_qr_svg(uri)
@@ -139,7 +151,9 @@ def mfa_setup():
 @settings_bp.route("/mfa/cancel-setup", methods=["POST"])
 @login_required
 def mfa_cancel_setup():
-    session.pop("pending_totp_secret", None)
+    current_user.pending_totp_secret = None
+    current_user.pending_totp_expires_at = None
+    db.session.commit()
     return redirect(url_for("settings.index"))
 
 

@@ -258,6 +258,12 @@ def _ensure_schema():
         if "locked_until" not in user_cols:
             conn.execute(text("ALTER TABLE user ADD COLUMN locked_until DATETIME"))
             conn.commit()
+        if "pending_totp_secret" not in user_cols:
+            conn.execute(text("ALTER TABLE user ADD COLUMN pending_totp_secret VARCHAR(32)"))
+            conn.commit()
+        if "pending_totp_expires_at" not in user_cols:
+            conn.execute(text("ALTER TABLE user ADD COLUMN pending_totp_expires_at DATETIME"))
+            conn.commit()
 
         account_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(account)"))}
         if "child_id" not in account_cols:
