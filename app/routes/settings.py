@@ -102,7 +102,7 @@ def change_password():
 
 @settings_bp.route("/mfa/setup", methods=["GET", "POST"])
 @login_required
-@limiter.limit("10 per minute")
+@limiter.limit("20 per minute")
 def mfa_setup():
     if current_user.totp_enabled:
         flash("Two-factor authentication is already enabled.", "error")

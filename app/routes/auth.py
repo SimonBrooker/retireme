@@ -27,7 +27,7 @@ auth_bp = Blueprint("auth", __name__)
 
 
 @auth_bp.route("/create-account", methods=["GET", "POST"])
-@limiter.limit("10 per minute")
+@limiter.limit("20 per minute")
 def create_account():
     # Only allowed when no account exists yet — this is a single-user app.
     if User.query.first() is not None:
@@ -65,7 +65,7 @@ def create_account():
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
-@limiter.limit("10 per minute")
+@limiter.limit("20 per minute")
 def login():
     if User.query.first() is None:
         return redirect(url_for("auth.create_account"))
@@ -130,7 +130,7 @@ def login():
 
 
 @auth_bp.route("/login/verify", methods=["GET", "POST"])
-@limiter.limit("10 per minute")
+@limiter.limit("20 per minute")
 def verify_mfa():
     user_id = session.get("pending_mfa_user_id")
     if not user_id:
