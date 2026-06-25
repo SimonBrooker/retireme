@@ -11,7 +11,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from app.extensions import db, login_manager, limiter
 
 
-APP_VERSION = "0.4"
+APP_VERSION = "0.5"
 
 
 def create_app():
