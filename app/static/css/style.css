@@ -185,7 +185,7 @@ h3 { font-size: 1rem; }
 .topnav .nav-user { font-size: 12.5px; color: var(--text-muted); }
 
 /* ── Main content ───────────────────────────────────────── */
-.main { flex: 1; padding: 32px 40px; max-width: 1200px; width: 100%; }
+.main { flex: 1; padding: 32px 40px; width: 100%; max-width: 1680px; margin: 0 auto; }
 
 /* ── Page header ────────────────────────────────────────── */
 .page-header { margin-bottom: 24px; }
