@@ -1,0 +1,17 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>retireme</title>
+  <rect width="128" height="128" rx="28" fill="#1a1f1c"/>
+  <rect x="18" y="88" width="92" height="1.5" fill="#3a4a3e" rx="1"/>
+  <rect x="18" y="68" width="92" height="1" fill="#2e3c32" rx="1"/>
+  <rect x="18" y="48" width="92" height="1" fill="#2e3c32" rx="1"/>
+  <polyline points="22,86 40,78 55,70 68,60 80,46 95,34 106,26" fill="none" stroke="#6fb088" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="22" cy="86" r="4" fill="#6fb088"/>
+  <circle cx="40" cy="78" r="3.5" fill="#6fb088" opacity="0.7"/>
+  <circle cx="55" cy="70" r="3.5" fill="#6fb088" opacity="0.7"/>
+  <circle cx="68" cy="60" r="3.5" fill="#c8932b"/>
+  <circle cx="80" cy="46" r="3.5" fill="#c8932b" opacity="0.8"/>
+  <circle cx="95" cy="34" r="3.5" fill="#c8932b" opacity="0.8"/>
+  <circle cx="106" cy="26" r="4.5" fill="#c8932b"/>
+  <line x1="68" y1="24" x2="68" y2="90" stroke="#5aa9c9" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.6"/>
+  <circle cx="68" cy="60" r="6.5" fill="none" stroke="#5aa9c9" stroke-width="1.5" opacity="0.8"/>
+</svg>
