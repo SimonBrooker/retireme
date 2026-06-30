@@ -32,11 +32,11 @@
     <div class="picker-section">
       <div class="picker-label">Base</div>
       <div class="base-grid">
-        <label class="base-option {{ 'selected' if current_base == 'dark' }}">
+        <label class="base-option">
           <input type="radio" name="base" value="dark" {{ 'checked' if current_base == 'dark' }} data-theme-toggle>
           <span class="base-dot base-dot-dark"></span>Dark
         </label>
-        <label class="base-option {{ 'selected' if current_base == 'light' }}">
+        <label class="base-option">
           <input type="radio" name="base" value="light" {{ 'checked' if current_base == 'light' }} data-theme-toggle>
           <span class="base-dot base-dot-light"></span>Light
         </label>
@@ -47,7 +47,7 @@
       <div class="accent-grid">
         {% set accents = [('indigo', '#6366f1', '#4f46e5'), ('blue', '#3b82f6', '#2563eb'), ('teal', '#14b8a6', '#0d9488'), ('emerald', '#10b981', '#059669')] %}
         {% for key, dark_hex, light_hex in accents %}
-        <label class="accent-option {{ 'selected' if current_accent == key }}">
+        <label class="accent-option">
           <input type="radio" name="accent" value="{{ key }}" {{ 'checked' if current_accent == key }} data-theme-toggle>
           <span class="accent-swatch" style="background: {{ dark_hex if current_base == 'dark' else light_hex }}" data-dark="{{ dark_hex }}" data-light="{{ light_hex }}"></span>
           {{ key|capitalize }}
