@@ -49,14 +49,27 @@
     <div class="stat-sub">{{ profile.currency_symbol }}{{ "{:,.0f}".format(final_row.total_net_worth) }} total net worth · {{ profile.currency_symbol }}{{ "{:,.0f}".format(final_row.withdrawal_capacity) }}/yr (retirement assets only)</div>
   </div>
   {% if profile.annual_expenses_target %}
+  {% set ns = namespace(income_goal_age=None) %}
+  {% for r in rows %}
+    {% if ns.income_goal_age is none and r.withdrawal_capacity >= profile.annual_expenses_target %}
+      {% set ns.income_goal_age = r.age %}
+    {% endif %}
+  {% endfor %}
   <div class="card">
     <div class="stat-label">Target income vs capacity</div>
     <div class="stat-value">{{ profile.currency_symbol }}{{ "{:,.0f}".format(profile.annual_expenses_target) }}</div>
     <div class="stat-sub">
       {% if retirement_row.withdrawal_capacity >= profile.annual_expenses_target %}
-        <span style="color: var(--moss);">On track at retirement</span>
+        {% if ns.income_goal_age and ns.income_goal_age < profile.retirement_age %}
+          {% set years_early = profile.retirement_age - ns.income_goal_age %}
+          <span style="color: var(--moss);">Projected to reach goal at age {{ ns.income_goal_age }} — {{ years_early }} year{{ 's' if years_early != 1 }} before retirement</span>
+        {% else %}
+          <span style="color: var(--moss);">On track at retirement</span>
+        {% endif %}
+      {% elif ns.income_goal_age %}
+        <span style="color: var(--brass);">Short at retirement — projected to reach goal at age {{ ns.income_goal_age }}</span>
       {% else %}
-        <span style="color: var(--rust);">Short by {{ profile.currency_symbol }}{{ "{:,.0f}".format(profile.annual_expenses_target - retirement_row.withdrawal_capacity) }}/yr</span>
+        <span style="color: var(--rust);">Short by {{ profile.currency_symbol }}{{ "{:,.0f}".format(profile.annual_expenses_target - retirement_row.withdrawal_capacity) }}/yr at retirement</span>
       {% endif %}
     </div>
   </div>
