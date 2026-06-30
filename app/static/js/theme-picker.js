@@ -1,5 +1,5 @@
 (function () {
-  const form = document.querySelector('form[action*="set_theme"]');
+  const form = document.querySelector('form[action$="/theme"]');
   if (!form) return;
   const combined = form.querySelector('#theme-combined');
 
