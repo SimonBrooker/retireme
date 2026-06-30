@@ -214,25 +214,15 @@
     });
   }
 
-  function updateSelected(group) {
-    form.querySelectorAll('.' + group + '-option').forEach(function (el) {
-      el.classList.toggle('selected', el.querySelector('input').checked);
-    });
-  }
-
   form.querySelectorAll('[name="base"]').forEach(function (el) {
     el.addEventListener('change', function () {
       updateCombined();
       updateSwatches();
-      updateSelected('base');
     });
   });
 
   form.querySelectorAll('[name="accent"]').forEach(function (el) {
-    el.addEventListener('change', function () {
-      updateCombined();
-      updateSelected('accent');
-    });
+    el.addEventListener('change', updateCombined);
   });
 })();
 </script>

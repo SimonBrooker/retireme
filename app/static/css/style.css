@@ -458,7 +458,8 @@ button:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); out
   font-weight: 500;
 }
 .base-option:hover { background: var(--surface-2); }
-.base-option.selected { border-color: var(--accent); color: var(--accent-text); background: var(--accent-soft); }
+.base-option.selected,
+.base-option:has(input:checked) { border-color: var(--accent); color: var(--accent-text); background: var(--accent-soft); }
 .base-option input { position: absolute; opacity: 0; width: 0; height: 0; }
 .base-dot { width: 10px; height: 10px; border-radius: 50%; }
 .base-dot-dark { background: #0f1117; border: 1px solid #4a5568; }
@@ -479,7 +480,8 @@ button:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); out
   color: var(--text-muted);
 }
 .accent-option:hover { background: var(--surface-2); }
-.accent-option.selected { border-color: var(--accent); color: var(--accent-text); }
+.accent-option.selected,
+.accent-option:has(input:checked) { border-color: var(--accent); color: var(--accent-text); }
 .accent-option input { position: absolute; opacity: 0; width: 0; height: 0; }
 .accent-swatch { width: 24px; height: 24px; border-radius: 6px; }
 
