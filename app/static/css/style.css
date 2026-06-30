@@ -215,6 +215,21 @@ h3 { font-size: 1.1rem; }
 .chart-card.danger-zone { border-color: var(--rust); }
 .chart-card.danger-zone h2 { color: var(--rust); }
 
+/* --- Chart canvases ---
+   maintainAspectRatio:false (set in JS) means each chart's height comes
+   entirely from this wrapper, not from a ratio applied to its width. That's
+   what lets mobile portrait get a sensible height instead of an
+   aspect-ratio-derived one that's barely tall enough for the legend.
+   Desktop heights below were chosen to match what the old aspect-ratio
+   default rendered at typical desktop widths, so desktop is unaffected. */
+.chart-wrap { position: relative; height: 340px; }
+.chart-wrap--lg { height: 380px; }
+.chart-wrap--sm { height: 280px; }
+.chart-wrap canvas { width: 100% !important; height: 100% !important; }
+
+/* --- Tables with potentially more columns than fit a narrow screen --- */
+.table-scroll { overflow-x: auto; }
+
 /* --- Tables (ledger style) --- */
 table.ledger { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 0.85rem; }
 table.ledger th {
@@ -429,4 +444,8 @@ html[data-theme="ledger-dark"] .theme-option[data-theme-preview="ledger-dark"] .
   .sidebar .logout .btn { width: auto; }
   .main { padding: 24px 18px; }
   .ledger-total .value { font-size: 2.2rem; }
+  .chart-card { padding: 16px 14px; }
+  .chart-wrap { height: 260px; }
+  .chart-wrap--lg { height: 280px; }
+  .chart-wrap--sm { height: 220px; }
 }

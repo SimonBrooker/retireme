@@ -71,9 +71,10 @@ async function loadKidsChart() {
     data: { labels: data.ages, datasets },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
       scales: {
-        x: { grid: { color: gridColor }, title: { display: true, text: "Age" } },
+        x: { grid: { color: gridColor }, title: { display: true, text: "Age" }, ticks: { autoSkip: true, maxRotation: 0 } },
         y: {
           grid: { color: gridColor },
           ticks: { callback: (v) => fmtKidsMoney(v, symbol) },

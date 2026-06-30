@@ -158,9 +158,10 @@ async function loadDashboardCharts() {
     data: { labels: data.ages, datasets: accountDatasets },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
       scales: {
-        x: { grid: { color: gridColor }, title: { display: true, text: "Age" } },
+        x: { grid: { color: gridColor }, title: { display: true, text: "Age" }, ticks: { autoSkip: true, maxRotation: 0 } },
         y: {
           stacked: true,
           grid: { color: gridColor },
@@ -203,9 +204,10 @@ async function loadDashboardCharts() {
     data: { labels: data.ages, datasets: withdrawalDatasets },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
       scales: {
-        x: { grid: { color: gridColor }, title: { display: true, text: "Age" } },
+        x: { grid: { color: gridColor }, title: { display: true, text: "Age" }, ticks: { autoSkip: true, maxRotation: 0 } },
         y: { grid: { color: gridColor }, ticks: { callback: (v) => fmtMoney(v) } },
       },
       plugins: {
@@ -275,9 +277,10 @@ async function loadDashboardCharts() {
     data: { labels: data.scenario_ages, datasets: scenarioDatasets },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
       scales: {
-        x: { grid: { color: gridColor }, title: { display: true, text: "Age" } },
+        x: { grid: { color: gridColor }, title: { display: true, text: "Age" }, ticks: { autoSkip: true, maxRotation: 0 } },
         y: { grid: { color: gridColor }, ticks: { callback: (v) => fmtMoney(v) } },
       },
       plugins: {

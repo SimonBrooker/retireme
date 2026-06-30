@@ -90,6 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       options: {
         responsive: true,
+      maintainAspectRatio: false,
         interaction: { mode: "index", intersect: false },
         plugins: {
           legend: {
@@ -110,6 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
           x: {
             ticks: {
               maxTicksLimit: 12,
+              maxRotation: 0,
               callback: (_, i) => ages[i],
               color: tickColor,
             },

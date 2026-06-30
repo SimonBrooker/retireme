@@ -66,24 +66,24 @@
 <div class="chart-card">
   <h2>Net worth by account</h2>
   <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Hover a point for that year's growth and contribution. Dashed lines mark today, your target retirement age, and (if set) the age your withdrawal capacity first reaches your target income. Points marked with a dot are actual recorded figures, not projections.{% if inflated %} Retirement accounts shown inflated; property is always today's money.{% endif %}</p>
-  <canvas id="compositionChart" height="120"></canvas>
+  <div class="chart-wrap chart-wrap--lg"><canvas id="compositionChart"></canvas></div>
 </div>
 
 <div class="chart-card">
   <h2>Withdrawal capacity</h2>
   <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Annual income available at your {{ profile.withdrawal_rate }}% withdrawal rate — based on retirement assets only, not your total net worth.{% if inflated %} Inflated figures.{% endif %}</p>
-  <canvas id="withdrawalChart" height="90"></canvas>
+  <div class="chart-wrap chart-wrap--sm"><canvas id="withdrawalChart"></canvas></div>
 </div>
 
 <div class="chart-card">
   <h2>Growth rate scenarios</h2>
   <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Retirement assets only (excludes property), from today to age {{ profile.end_age }}. Same contributions throughout — only the assumed growth rate changes. "Your accounts' rates" uses whatever you've set per account on the Accounts page.{% if inflated %} Inflated figures.{% endif %}</p>
-  <canvas id="scenarioChart" height="110"></canvas>
+  <div class="chart-wrap"><canvas id="scenarioChart"></canvas></div>
 </div>
 
 <div class="chart-card">
   <h2>Year by year</h2>
-  <div style="max-height: 420px; overflow-y: auto;">
+  <div class="table-scroll" style="max-height: 420px; overflow-y: auto;">
     <table class="ledger">
       <thead>
         <tr>

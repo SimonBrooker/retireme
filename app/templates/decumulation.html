@@ -95,26 +95,26 @@
 <div class="chart-card">
   <h2>Portfolio value by withdrawal rate</h2>
   <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Each line withdraws a fixed amount each year (set once at retirement, as that rate × your balance then) from retirement assets only. Your configured rate is shown dashed.</p>
-  <canvas id="decumChart" height="110"></canvas>
+  <div class="chart-wrap"><canvas id="decumChart"></canvas></div>
 </div>
 
 <div class="chart-card">
   <h2>Withdrawal sources at your rate ({{ profile.withdrawal_rate }}%)</h2>
   <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Each bar is one year's income, split by source — tax-free (ISA/other), taxable (SIPP/pension), and State Pension once it starts (age {{ tax_settings.state_pension_age }}). The hatched/locked period before age {{ tax_settings.pension_access_age }} shows SIPP/pension money simply isn't accessible yet.</p>
-  <canvas id="decumStackChart" height="110"></canvas>
+  <div class="chart-wrap"><canvas id="decumStackChart"></canvas></div>
 </div>
 
 {% if die_with_zero_first_year %}
 <div class="chart-card">
   <h2>Die with Zero</h2>
   <p class="dim" style="margin-top:-8px; font-size:0.85rem;">What it takes to spend down every retirement account to (almost) nothing by age {{ profile.end_age }} — not leave money unused, not run out early. Each account amortizes itself independently (the same maths behind a mortgage payment, run in reverse) using its own growth rate, starting later if it's pension money locked until age {{ tax_settings.pension_access_age }}. Because it's a constant payment, the amount stays level within each "income source" period and the balance declines smoothly underneath it — it doesn't taper off gradually before the end, the same way a mortgage payment doesn't shrink as you approach payoff. Doesn't currently model contributions continuing into retirement, or the inflation-adjusted withdrawal style used elsewhere on this page.</p>
-  <canvas id="decumDieWithZeroChart" height="110"></canvas>
+  <div class="chart-wrap"><canvas id="decumDieWithZeroChart"></canvas></div>
 </div>
 {% endif %}
 
 <div class="chart-card">
   <h2>Year by year</h2>
-  <div style="max-height: 420px; overflow-y: auto;">
+  <div class="table-scroll" style="max-height: 420px; overflow-y: auto;">
     <table class="ledger">
       <thead>
         <tr>

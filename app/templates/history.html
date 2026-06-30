@@ -46,7 +46,8 @@
 <div class="chart-card">
   <h3>{{ a.name }} <span class="dim mono" style="font-size:0.75rem;">({{ a.type_label() }})</span></h3>
   {% if a.snapshots %}
-  <canvas id="history-chart-{{ a.id }}" height="90" style="margin-bottom:16px;"></canvas>
+  <div class="chart-wrap chart-wrap--sm" style="margin-bottom:16px;"><canvas id="history-chart-{{ a.id }}"></canvas></div>
+  <div class="table-scroll">
   <table class="ledger">
     <thead>
       <tr><th>Age</th><th>Actual balance</th><th>Note</th><th></th></tr>
@@ -67,6 +68,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
   {% else %}
   <div class="empty-note">No recorded actuals for this account yet.</div>
   {% endif %}
