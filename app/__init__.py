@@ -11,7 +11,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from app.extensions import db, login_manager, limiter
 
 
-APP_VERSION = "1.4"
+APP_VERSION = "2.0-beta"
 
 
 def create_app():
@@ -113,9 +113,13 @@ def create_app():
 
     @app.context_processor
     def inject_theme():
-        # Even on pages rendered before login (the login screen itself), show
-        # whichever theme was last saved — there's only ever one user, so
-        # "the app's theme" and "this user's theme" are the same thing.
+        from app.models import THEME_KEYS
+        _legacy_map = {
+            "ledger-dark": "dark-indigo",
+            "ledger-light": "light-indigo",
+            "slate": "dark-blue",
+            "meadow": "light-emerald",
+        }
         if current_user.is_authenticated and current_user.profile:
             theme = current_user.profile.theme
         else:
@@ -123,8 +127,10 @@ def create_app():
             theme = (
                 first_user.profile.theme
                 if first_user and first_user.profile
-                else "ledger-dark"
+                else "dark-indigo"
             )
+        if theme not in THEME_KEYS:
+            theme = _legacy_map.get(theme, "dark-indigo")
         return {"site_theme": theme}
 
     @app.context_processor

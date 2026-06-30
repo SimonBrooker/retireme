@@ -65,12 +65,24 @@ class User(UserMixin, db.Model):
 
 
 THEMES = [
-    ("ledger-dark", "Ledger Dark"),
-    ("ledger-light", "Ledger Light"),
-    ("slate", "Slate"),
-    ("meadow", "Meadow"),
+    ("dark-indigo",   "Dark · Indigo"),
+    ("dark-blue",     "Dark · Blue"),
+    ("dark-teal",     "Dark · Teal"),
+    ("dark-emerald",  "Dark · Emerald"),
+    ("light-indigo",  "Light · Indigo"),
+    ("light-blue",    "Light · Blue"),
+    ("light-teal",    "Light · Teal"),
+    ("light-emerald", "Light · Emerald"),
 ]
 THEME_KEYS = [t[0] for t in THEMES]
+DEFAULT_THEME = "dark-indigo"
+
+ACCENT_COLORS = {
+    "indigo":  {"dark": "#6366f1", "light": "#4f46e5"},
+    "blue":    {"dark": "#3b82f6", "light": "#2563eb"},
+    "teal":    {"dark": "#14b8a6", "light": "#0d9488"},
+    "emerald": {"dark": "#10b981", "light": "#059669"},
+}
 
 # (code, name, symbol, flag emoji)
 CURRENCIES = [
@@ -110,7 +122,7 @@ class Profile(db.Model):
     inflation_rate = db.Column(db.Float, nullable=False, default=3.0)  # %
     annual_expenses_target = db.Column(db.Float, nullable=True)
     setup_complete = db.Column(db.Boolean, default=False, nullable=False)
-    theme = db.Column(db.String(20), nullable=False, default="ledger-dark")
+    theme = db.Column(db.String(20), nullable=False, default="dark-indigo")
     currency = db.Column(db.String(3), nullable=False, default=DEFAULT_CURRENCY)
 
     @property

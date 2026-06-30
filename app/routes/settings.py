@@ -58,7 +58,12 @@ def index():
 @settings_bp.route("/theme", methods=["POST"])
 @login_required
 def set_theme():
-    theme = request.form.get("theme", "")
+    base = request.form.get("base", "")
+    accent = request.form.get("accent", "")
+    if base and accent:
+        theme = f"{base}-{accent}"
+    else:
+        theme = request.form.get("theme", "")
     if theme in THEME_KEYS:
         current_user.profile.theme = theme
         db.session.commit()

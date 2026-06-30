@@ -23,17 +23,41 @@
 
 <div class="chart-card">
   <h2>Appearance</h2>
-  <p class="dim">Pick a theme — light or dark.</p>
+  <p class="dim">Choose a base and accent colour.</p>
   <form method="post" action="{{ url_for('settings.set_theme') }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <div class="theme-grid">
-      {% for key, label in themes %}
-      <label class="theme-option {{ 'selected' if profile.theme == key }}" data-theme-preview="{{ key }}">
-        <input type="radio" name="theme" value="{{ key }}" {{ "checked" if profile.theme == key }} data-auto-submit>
-        <span class="theme-swatch"><span class="s1"></span><span class="s2"></span><span class="s3"></span></span>
-        <span class="theme-name">{{ label }}</span>
-      </label>
-      {% endfor %}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {% set theme_parts = profile.theme.split('-', 1) %}
+    {% set current_base = theme_parts[0] if theme_parts|length > 1 else 'dark' %}
+    {% set current_accent = theme_parts[1] if theme_parts|length > 1 else 'indigo' %}
+    <div class="picker-section">
+      <div class="picker-label">Base</div>
+      <div class="base-grid">
+        <label class="base-option {{ 'selected' if current_base == 'dark' }}">
+          <input type="radio" name="base" value="dark" {{ 'checked' if current_base == 'dark' }} data-theme-toggle>
+          <span class="base-dot base-dot-dark"></span>Dark
+        </label>
+        <label class="base-option {{ 'selected' if current_base == 'light' }}">
+          <input type="radio" name="base" value="light" {{ 'checked' if current_base == 'light' }} data-theme-toggle>
+          <span class="base-dot base-dot-light"></span>Light
+        </label>
+      </div>
+    </div>
+    <div class="picker-section">
+      <div class="picker-label">Accent</div>
+      <div class="accent-grid">
+        {% set accents = [('indigo', '#6366f1', '#4f46e5'), ('blue', '#3b82f6', '#2563eb'), ('teal', '#14b8a6', '#0d9488'), ('emerald', '#10b981', '#059669')] %}
+        {% for key, dark_hex, light_hex in accents %}
+        <label class="accent-option {{ 'selected' if current_accent == key }}">
+          <input type="radio" name="accent" value="{{ key }}" {{ 'checked' if current_accent == key }} data-theme-toggle>
+          <span class="accent-swatch" style="background: {{ dark_hex if current_base == 'dark' else light_hex }}" data-dark="{{ dark_hex }}" data-light="{{ light_hex }}"></span>
+          {{ key|capitalize }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    <input type="hidden" name="theme" id="theme-combined" value="{{ profile.theme }}">
+    <div class="btn-row" style="margin-top: 12px;">
+      <button type="submit" class="btn">Save appearance</button>
     </div>
   </form>
 </div>
@@ -170,4 +194,46 @@
 {% endblock %}
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/dob.js') }}"></script>
+<script>
+(function () {
+  const form = document.querySelector('form[action*="set_theme"]');
+  if (!form) return;
+  const combined = form.querySelector('#theme-combined');
+
+  function updateCombined() {
+    const base = form.querySelector('[name="base"]:checked');
+    const accent = form.querySelector('[name="accent"]:checked');
+    if (base && accent) combined.value = base.value + '-' + accent.value;
+  }
+
+  function updateSwatches() {
+    const base = form.querySelector('[name="base"]:checked');
+    if (!base) return;
+    form.querySelectorAll('.accent-swatch').forEach(function (el) {
+      el.style.background = base.value === 'dark' ? el.dataset.dark : el.dataset.light;
+    });
+  }
+
+  function updateSelected(group) {
+    form.querySelectorAll('.' + group + '-option').forEach(function (el) {
+      el.classList.toggle('selected', el.querySelector('input').checked);
+    });
+  }
+
+  form.querySelectorAll('[name="base"]').forEach(function (el) {
+    el.addEventListener('change', function () {
+      updateCombined();
+      updateSwatches();
+      updateSelected('base');
+    });
+  });
+
+  form.querySelectorAll('[name="accent"]').forEach(function (el) {
+    el.addEventListener('change', function () {
+      updateCombined();
+      updateSelected('accent');
+    });
+  });
+})();
+</script>
 {% endblock %}
