@@ -1,3 +1,5 @@
+const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
 function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
@@ -90,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       options: {
         responsive: true,
-      maintainAspectRatio: false,
+      maintainAspectRatio: !isMobile,
         interaction: { mode: "index", intersect: false },
         plugins: {
           legend: {

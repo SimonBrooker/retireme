@@ -1,3 +1,5 @@
+const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
 const DECUM_PALETTE = {
   "2": "#5aa9c9",
   "3": "#7c9a93",
@@ -105,7 +107,7 @@ async function loadDecumulationCharts() {
     data: { labels: data.ages, datasets: balanceDatasets },
     options: {
       responsive: true,
-      maintainAspectRatio: false,
+      maintainAspectRatio: !isMobile,
       interaction: { mode: "index", intersect: false },
       scales: {
         x: { grid: { color: gridColor }, title: { display: true, text: "Age" }, ticks: { autoSkip: true, maxRotation: 0 } },
@@ -159,7 +161,7 @@ async function loadDecumulationCharts() {
       },
       options: {
         responsive: true,
-      maintainAspectRatio: false,
+      maintainAspectRatio: !isMobile,
         interaction: { mode: "index", intersect: false },
         scales: {
           x: { stacked: true, grid: { color: gridColor }, title: { display: true, text: "Age" }, ticks: { autoSkip: true, maxRotation: 0 } },
@@ -219,7 +221,7 @@ async function loadDecumulationCharts() {
       data: { labels: data.ages, datasets: dwzDatasets },
       options: {
         responsive: true,
-      maintainAspectRatio: false,
+      maintainAspectRatio: !isMobile,
         interaction: { mode: "index", intersect: false },
         scales: {
           x: { stacked: true, grid: { color: gridColor }, title: { display: true, text: "Age" }, ticks: { autoSkip: true, maxRotation: 0 } },

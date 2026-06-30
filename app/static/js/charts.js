@@ -1,3 +1,5 @@
+const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
 const PALETTE = [
   "#c8932b", // brass/amber
   "#6fb088", // moss green
@@ -158,7 +160,7 @@ async function loadDashboardCharts() {
     data: { labels: data.ages, datasets: accountDatasets },
     options: {
       responsive: true,
-      maintainAspectRatio: false,
+      maintainAspectRatio: !isMobile,
       interaction: { mode: "index", intersect: false },
       scales: {
         x: { grid: { color: gridColor }, title: { display: true, text: "Age" }, ticks: { autoSkip: true, maxRotation: 0 } },
@@ -204,7 +206,7 @@ async function loadDashboardCharts() {
     data: { labels: data.ages, datasets: withdrawalDatasets },
     options: {
       responsive: true,
-      maintainAspectRatio: false,
+      maintainAspectRatio: !isMobile,
       interaction: { mode: "index", intersect: false },
       scales: {
         x: { grid: { color: gridColor }, title: { display: true, text: "Age" }, ticks: { autoSkip: true, maxRotation: 0 } },
@@ -277,7 +279,7 @@ async function loadDashboardCharts() {
     data: { labels: data.scenario_ages, datasets: scenarioDatasets },
     options: {
       responsive: true,
-      maintainAspectRatio: false,
+      maintainAspectRatio: !isMobile,
       interaction: { mode: "index", intersect: false },
       scales: {
         x: { grid: { color: gridColor }, title: { display: true, text: "Age" }, ticks: { autoSkip: true, maxRotation: 0 } },

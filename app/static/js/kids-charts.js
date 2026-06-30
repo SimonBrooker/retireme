@@ -1,3 +1,5 @@
+const isMobile = window.matchMedia("(max-width: 768px)").matches;
+
 const KIDS_PALETTE = [
   "#c8932b", "#6fb088", "#c4795a", "#5aa9c9", "#a98cc8", "#cfa15a", "#7c9a93", "#d17ba0",
 ];
@@ -71,7 +73,7 @@ async function loadKidsChart() {
     data: { labels: data.ages, datasets },
     options: {
       responsive: true,
-      maintainAspectRatio: false,
+      maintainAspectRatio: !isMobile,
       interaction: { mode: "index", intersect: false },
       scales: {
         x: { grid: { color: gridColor }, title: { display: true, text: "Age" }, ticks: { autoSkip: true, maxRotation: 0 } },
