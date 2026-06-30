@@ -220,11 +220,11 @@ h3 { font-size: 1.1rem; }
    entirely from this wrapper, not from a ratio applied to its width. That's
    what lets mobile portrait get a sensible height instead of an
    aspect-ratio-derived one that's barely tall enough for the legend.
-   Desktop heights below were chosen to match what the old aspect-ratio
-   default rendered at typical desktop widths, so desktop is unaffected. */
-.chart-wrap { position: relative; height: 340px; }
-.chart-wrap--lg { height: 380px; }
-.chart-wrap--sm { height: 280px; }
+   Desktop heights approximate the old 2:1 aspect-ratio output at ~900px
+   container width (900/2 ≈ 450px). Mobile overrides are below in @media. */
+.chart-wrap { position: relative; height: 420px; }
+.chart-wrap--lg { height: 460px; }
+.chart-wrap--sm { height: 340px; }
 .chart-wrap canvas { width: 100% !important; height: 100% !important; }
 
 /* --- Tables with potentially more columns than fit a narrow screen --- */
