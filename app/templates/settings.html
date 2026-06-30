@@ -56,9 +56,6 @@
       </div>
     </div>
     <input type="hidden" name="theme" id="theme-combined" value="{{ profile.theme }}">
-    <div class="btn-row" style="margin-top: 12px;">
-      <button type="submit" class="btn">Save appearance</button>
-    </div>
   </form>
 </div>
 
@@ -218,11 +215,15 @@
     el.addEventListener('change', function () {
       updateCombined();
       updateSwatches();
+      form.submit();
     });
   });
 
   form.querySelectorAll('[name="accent"]').forEach(function (el) {
-    el.addEventListener('change', updateCombined);
+    el.addEventListener('change', function () {
+      updateCombined();
+      form.submit();
+    });
   });
 })();
 </script>
