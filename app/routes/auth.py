@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 
 from flask import Blueprint, render_template, redirect, url_for, request, flash, session, current_app
 from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db, limiter
 from app.models import User, Profile
@@ -11,7 +11,11 @@ from app.totp_utils import verify_code
 
 # Dummy hash used when no user is found — ensures the response time is
 # indistinguishable from a real failed login, preventing username enumeration.
-_DUMMY_HASH = "pbkdf2:sha256:260000$x$" + "a" * 64
+# Derived from the real hasher (not a hardcoded literal) so it always uses the
+# same algorithm and cost as a genuine password check; a hardcoded pbkdf2 string
+# would run far faster than werkzeug's current scrypt default and reintroduce the
+# very timing side-channel this is meant to close.
+_DUMMY_HASH = generate_password_hash("timing-equalizer-not-a-real-password")
 
 MAX_FAILED_ATTEMPTS = 5
 MAX_FAILED_MFA_ATTEMPTS = 10
