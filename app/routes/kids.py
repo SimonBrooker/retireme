@@ -1,3 +1,4 @@
+import json
 from datetime import date
 from dataclasses import replace
 
@@ -5,8 +6,9 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash,
 from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models import Child
+from app.models import Child, Account, Snapshot
 from app.projections import project
+from app.routes.history import _AccountWithoutSnapshots
 
 kids_bp = Blueprint("kids", __name__, url_prefix="/kids")
 
@@ -28,6 +30,43 @@ def _project_child(child):
     current_age = child.current_age
     end_age = max(21, current_age + 1)
     return project(_ChildProfile(current_age, end_age), child.accounts, [])
+
+
+def _build_child_chart_data(child):
+    """Recorded-vs-projected chart data per kid account, keyed on the child's
+    age — the Kids-page analogue of history._build_chart_data. Returns a dict
+    keyed by account id, in the same shape history-charts.js already renders."""
+    accounts_with_snaps = [a for a in child.accounts if a.snapshots]
+    if not accounts_with_snaps:
+        return {}
+
+    current_age = child.current_age
+    end_age = max(21, current_age + 1)
+    profile = _ChildProfile(current_age, end_age)
+
+    clean_accounts = [_AccountWithoutSnapshots(a) for a in child.accounts]
+    clean_rows = project(profile, clean_accounts, [])
+    actual_rows = project(profile, child.accounts, [])
+
+    clean_by_age = {r.age: r.balances for r in clean_rows}
+    actual_by_age = {r.age: r for r in actual_rows}
+    ages = [r.age for r in actual_rows]
+
+    data = {}
+    for a in accounts_with_snaps:
+        snap_map = {s.age: s.balance for s in a.snapshots}
+        data[a.id] = {
+            "ages": ages,
+            "projected": [
+                round((clean_by_age.get(age, {}).get(a.id) or 0), 2) for age in ages
+            ],
+            "adjusted": [
+                round((actual_by_age[age].balances.get(a.id) or 0), 2) for age in ages
+            ],
+            "actuals": snap_map,
+            "current_age": current_age,
+        }
+    return data
 
 
 def _show_inflated():
@@ -53,24 +92,34 @@ def index():
     inflation_rate = current_user.profile.inflation_rate
 
     stats = []
+    chart_data = {}
     for child in children:
         rows = _project_child(child)
         if inflated:
             rows = _apply_inflation(rows, child, inflation_rate)
+        # rows[0] can be a historical snapshot age once actuals exist, so read
+        # the row at the child's actual current age for the "today" figure.
+        current_total = next(
+            (r.total_net_worth for r in rows if r.age == child.current_age),
+            rows[0].total_net_worth,
+        )
         row_18 = next((r for r in rows if r.age == 18), None)
         stats.append(
             {
                 "child": child,
-                "current_total": rows[0].total_net_worth,
+                "current_total": current_total,
                 "at_18": row_18.total_net_worth if row_18 else None,
                 "has_accounts": len(child.accounts) > 0,
             }
         )
+        chart_data.update(_build_child_chart_data(child))
 
     return render_template(
         "kids.html",
         children=children,
         stats=stats,
+        chart_data_json=json.dumps(chart_data),
+        currency_symbol=current_user.profile.currency_symbol,
         today_iso=date.today().isoformat(),
         inflated=inflated,
         inflation_rate=inflation_rate,
@@ -118,6 +167,54 @@ def api_projection():
             "inflated": inflated,
         }
     )
+
+
+@kids_bp.route("/actual/add", methods=["POST"])
+@login_required
+def add_actual():
+    # Scope to accounts that belong to this user AND to a child (child_id set) —
+    # i.e. only junior accounts can get actuals recorded from the Kids page.
+    account = (
+        Account.query.filter_by(id=request.form.get("account_id"), user_id=current_user.id)
+        .filter(Account.child_id.isnot(None))
+        .first()
+    )
+    if not account:
+        flash("Choose a child's account.", "error")
+        return redirect(url_for("kids.index"))
+
+    try:
+        age = int(request.form["age"])
+        balance = float(request.form["balance"])
+    except (ValueError, KeyError):
+        flash("Enter a valid age and balance.", "error")
+        return redirect(url_for("kids.index"))
+
+    existing = Snapshot.query.filter_by(account_id=account.id, age=age).first()
+    note = (request.form.get("note") or "").strip() or None
+    if existing:
+        existing.balance = balance
+        existing.note = note
+        flash(f"Updated {account.name} at age {age}.", "success")
+    else:
+        db.session.add(Snapshot(account_id=account.id, age=age, balance=balance, note=note))
+        flash(f"Recorded {account.name} at age {age}.", "success")
+    db.session.commit()
+    return redirect(url_for("kids.index"))
+
+
+@kids_bp.route("/actual/<int:snapshot_id>/delete", methods=["POST"])
+@login_required
+def delete_actual(snapshot_id):
+    snap = (
+        Snapshot.query.join(Account)
+        .filter(Snapshot.id == snapshot_id, Account.user_id == current_user.id)
+        .first_or_404()
+    )
+    db.session.delete(snap)
+    db.session.commit()
+    flash("Removed.", "success")
+    return redirect(url_for("kids.index"))
 
 
 @kids_bp.route("/add", methods=["POST"])
