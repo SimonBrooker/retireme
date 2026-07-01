@@ -19,9 +19,21 @@ LOCKOUT_DURATION = timedelta(minutes=15)
 
 
 def _safe_next(url):
-    if url and urlparse(url).netloc == "":
-        return url
-    return None
+    if not url:
+        return None
+    # A backslash is never valid in a local path we generate; browsers
+    # normalise it to "/", which is exactly the open-redirect vector
+    # (e.g. "/\evil.com" is read by the browser as "//evil.com").
+    if "\\" in url:
+        return None
+    parsed = urlparse(url)
+    # Local paths only: reject anything with a scheme ("https:evil.com"),
+    # a host ("https://evil.com"), or a protocol-relative "//…" prefix.
+    if parsed.scheme or parsed.netloc or url.startswith("//"):
+        return None
+    if not url.startswith("/"):
+        return None
+    return url
 
 auth_bp = Blueprint("auth", __name__)
 
