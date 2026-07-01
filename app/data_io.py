@@ -47,7 +47,13 @@ def export_user_data(profile, accounts, inheritances, children=None):
                 "notes": a.notes,
                 "child_name": a.child.name if a.child else None,
                 "snapshots": [
-                    {"age": s.age, "balance": s.balance, "note": s.note} for s in a.snapshots
+                    {
+                        "age": s.age,
+                        "date": s.snapshot_date.isoformat() if s.snapshot_date else None,
+                        "balance": s.balance,
+                        "note": s.note,
+                    }
+                    for s in a.snapshots
                 ],
             }
             for a in accounts
@@ -253,8 +259,19 @@ def build_import_objects(payload):
             acc._child_ref = child_ref
 
         for s in a.get("snapshots", []):
+            snap_date = None
+            if s.get("date"):
+                try:
+                    snap_date = date.fromisoformat(s["date"])
+                except (ValueError, TypeError):
+                    snap_date = None  # tolerate a malformed/absent date; age is authoritative
             acc.snapshots.append(
-                Snapshot(age=int(s["age"]), balance=float(s["balance"]), note=s.get("note"))
+                Snapshot(
+                    age=int(s["age"]),
+                    snapshot_date=snap_date,
+                    balance=float(s["balance"]),
+                    note=s.get("note"),
+                )
             )
         accounts.append(acc)
         name_lookup[a["name"]] = acc

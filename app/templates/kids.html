@@ -127,9 +127,14 @@
         </select>
       </div>
       <div class="field">
-        <label>{{ child.name }}'s age</label>
-        <input type="number" name="age" min="0" max="30" value="{{ child.current_age }}" required>
-        <div class="hint">Their age when this balance was true. Past, present, or future.</div>
+        <label>Date</label>
+        <input type="date" name="snapshot_date" data-age-preview data-dob="{{ child.date_of_birth.isoformat() }}">
+        <div class="hint">The statement date — we'll convert it to {{ child.name }}'s age. <span class="mono" data-age-out></span></div>
+      </div>
+      <div class="field">
+        <label>…or {{ child.name }}'s age</label>
+        <input type="number" name="age" min="0" max="30">
+        <div class="hint">Only needed if you'd rather enter an age than a date.</div>
       </div>
       <div class="field">
         <label>Actual balance ({{ current_user.profile.currency_symbol }})</label>
@@ -152,12 +157,13 @@
     <div class="table-scroll">
     <table class="ledger">
       <thead>
-        <tr><th>Age</th><th>Actual balance</th><th>Note</th><th></th></tr>
+        <tr><th>Age</th><th>Date</th><th>Actual balance</th><th>Note</th><th></th></tr>
       </thead>
       <tbody>
         {% for s in a.snapshots %}
         <tr>
           <td>{{ s.age }}</td>
+          <td class="dim mono" style="font-size:0.8rem;">{{ s.snapshot_date.isoformat() if s.snapshot_date else "—" }}</td>
           <td>{{ current_user.profile.currency_symbol }}{{ "{:,.0f}".format(s.balance) }}</td>
           <td style="text-align:left;" class="dim">{{ s.note or "" }}</td>
           <td>
@@ -181,4 +187,5 @@
 <script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/kids-charts.js') }}"></script>
 <script src="{{ url_for('static', filename='js/history-charts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/actuals-date.js') }}"></script>
 {% endblock %}

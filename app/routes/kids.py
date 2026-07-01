@@ -8,7 +8,7 @@ from flask_login import login_required, current_user
 from app.extensions import db
 from app.models import Child, Account, Snapshot
 from app.projections import project
-from app.routes.history import _AccountWithoutSnapshots
+from app.routes.history import _AccountWithoutSnapshots, resolve_actual_age
 
 kids_bp = Blueprint("kids", __name__, url_prefix="/kids")
 
@@ -183,11 +183,12 @@ def add_actual():
         flash("Choose a child's account.", "error")
         return redirect(url_for("kids.index"))
 
+    dob = account.child.date_of_birth if account.child else None
     try:
-        age = int(request.form["age"])
+        age, snap_date = resolve_actual_age(request.form, dob)
         balance = float(request.form["balance"])
     except (ValueError, KeyError):
-        flash("Enter a valid age and balance.", "error")
+        flash("Enter a valid balance and either a date or an age.", "error")
         return redirect(url_for("kids.index"))
 
     existing = Snapshot.query.filter_by(account_id=account.id, age=age).first()
@@ -195,9 +196,14 @@ def add_actual():
     if existing:
         existing.balance = balance
         existing.note = note
+        existing.snapshot_date = snap_date
         flash(f"Updated {account.name} at age {age}.", "success")
     else:
-        db.session.add(Snapshot(account_id=account.id, age=age, balance=balance, note=note))
+        db.session.add(
+            Snapshot(
+                account_id=account.id, age=age, snapshot_date=snap_date, balance=balance, note=note
+            )
+        )
         flash(f"Recorded {account.name} at age {age}.", "success")
     db.session.commit()
     return redirect(url_for("kids.index"))

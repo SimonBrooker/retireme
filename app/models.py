@@ -202,6 +202,10 @@ class Snapshot(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     account_id = db.Column(db.Integer, db.ForeignKey("account.id"), nullable=False)
     age = db.Column(db.Integer, nullable=False)
+    # Optional real-world date this balance was true. `age` remains the source of
+    # truth the projection engine keys on; when a date is entered we derive `age`
+    # from the relevant date of birth and keep the date here for display/export.
+    snapshot_date = db.Column(db.Date, nullable=True)
     balance = db.Column(db.Float, nullable=False)
     note = db.Column(db.String(255), nullable=True)
     recorded_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))

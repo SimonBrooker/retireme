@@ -1,13 +1,29 @@
 import json
+from datetime import date
 
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models import Account, Snapshot
+from app.models import Account, Snapshot, calculate_age
 from app.projections import project
 
 history_bp = Blueprint("history", __name__, url_prefix="/history")
+
+
+def resolve_actual_age(form, dob):
+    """Work out the age an actual should be filed under.
+
+    If a `snapshot_date` is supplied and a date of birth is available, derive
+    the age from it (returning the date too, for display/export). Otherwise fall
+    back to the explicit `age` field. `age` stays the projection engine's key;
+    the date is convenience/metadata. Raises ValueError/KeyError on bad input.
+    """
+    date_raw = (form.get("snapshot_date") or "").strip()
+    if date_raw and dob:
+        snap_date = date.fromisoformat(date_raw)  # ValueError on bad format
+        return calculate_age(dob, snap_date), snap_date
+    return int(form["age"]), None  # ValueError/KeyError if age missing/invalid
 
 
 class _AccountWithoutSnapshots:
@@ -89,10 +105,10 @@ def add():
         return redirect(url_for("history.index"))
 
     try:
-        age = int(request.form["age"])
+        age, snap_date = resolve_actual_age(request.form, current_user.profile.date_of_birth)
         balance = float(request.form["balance"])
     except (ValueError, KeyError):
-        flash("Enter a valid age and balance.", "error")
+        flash("Enter a valid balance and either a date or an age.", "error")
         return redirect(url_for("history.index"))
 
     existing = Snapshot.query.filter_by(account_id=account.id, age=age).first()
@@ -100,9 +116,14 @@ def add():
     if existing:
         existing.balance = balance
         existing.note = note
+        existing.snapshot_date = snap_date
         flash(f"Updated {account.name} at age {age}.", "success")
     else:
-        db.session.add(Snapshot(account_id=account.id, age=age, balance=balance, note=note))
+        db.session.add(
+            Snapshot(
+                account_id=account.id, age=age, snapshot_date=snap_date, balance=balance, note=note
+            )
+        )
         flash(f"Recorded {account.name} at age {age}.", "success")
     db.session.commit()
     return redirect(url_for("history.index"))
