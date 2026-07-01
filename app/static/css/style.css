@@ -427,6 +427,31 @@ button:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); out
 .legend .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
 
 .checkbox-row-disabled { opacity: 0.45; }
+
+/* ── Accounts list (compact cards) ──────────────────────── */
+.acct-cat { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 26px 0 10px; }
+.acct-list { display: flex; flex-direction: column; gap: 8px; }
+.acct-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color 0.1s, background 0.1s;
+}
+.acct-card:hover { border-color: var(--accent-border); background: var(--surface-2); text-decoration: none; }
+.acct-main { flex: 1; min-width: 0; }
+.acct-name { font-weight: 600; font-size: 0.95rem; color: var(--text); }
+.acct-sub { margin-top: 4px; }
+.acct-bal { font-weight: 600; font-size: 0.95rem; font-variant-numeric: tabular-nums; color: var(--text); white-space: nowrap; }
+.acct-chevron { color: var(--text-dim); font-size: 1.3rem; line-height: 1; flex-shrink: 0; }
+
+.back-link { display: inline-block; font-size: 13px; color: var(--text-muted); margin-bottom: 10px; text-decoration: none; }
+.back-link:hover { color: var(--accent-text); text-decoration: none; }
 .checkbox-row-disabled label { cursor: not-allowed; }
 
 /* ── QR code ────────────────────────────────────────────── */

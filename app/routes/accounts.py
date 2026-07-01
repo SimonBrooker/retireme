@@ -55,6 +55,25 @@ def index():
     )
 
 
+@accounts_bp.route("/new")
+@login_required
+def new_page():
+    children = Child.query.filter_by(user_id=current_user.id).order_by(Child.id).all()
+    return render_template(
+        "account_form.html", account=None, account_types=ACCOUNT_TYPES, children=children
+    )
+
+
+@accounts_bp.route("/<int:account_id>")
+@login_required
+def edit_page(account_id):
+    acc = Account.query.filter_by(id=account_id, user_id=current_user.id).first_or_404()
+    children = Child.query.filter_by(user_id=current_user.id).order_by(Child.id).all()
+    return render_template(
+        "account_form.html", account=acc, account_types=ACCOUNT_TYPES, children=children
+    )
+
+
 @accounts_bp.route("/add", methods=["POST"])
 @login_required
 def add():
@@ -69,8 +88,10 @@ def add():
         flash(f'Added "{acc.name}".', "success")
     except AccountFormError as e:
         flash(str(e), "error")
+        return redirect(url_for("accounts.new_page"))
     except ValueError:
         flash("Please enter valid numbers.", "error")
+        return redirect(url_for("accounts.new_page"))
     return redirect(url_for("accounts.index"))
 
 
@@ -89,9 +110,11 @@ def edit(account_id):
     except AccountFormError as e:
         db.session.rollback()
         flash(str(e), "error")
+        return redirect(url_for("accounts.edit_page", account_id=account_id))
     except ValueError:
         db.session.rollback()
         flash("Please enter valid numbers.", "error")
+        return redirect(url_for("accounts.edit_page", account_id=account_id))
     return redirect(url_for("accounts.index"))
 
 
