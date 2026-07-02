@@ -447,7 +447,8 @@ button:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); out
 .acct-main { flex: 1; min-width: 0; }
 .acct-name { font-weight: 600; font-size: 0.95rem; color: var(--text); }
 .acct-sub { margin-top: 4px; }
-.acct-bal { font-weight: 600; font-size: 0.95rem; font-variant-numeric: tabular-nums; color: var(--text); white-space: nowrap; }
+.acct-bal { font-weight: 600; font-size: 0.95rem; font-variant-numeric: tabular-nums; color: var(--text); white-space: nowrap; text-align: right; }
+.acct-bal-sub { font-weight: 400; font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
 .acct-chevron { color: var(--text-dim); font-size: 1.3rem; line-height: 1; flex-shrink: 0; }
 
 .back-link { display: inline-block; font-size: 13px; color: var(--text-muted); margin-bottom: 10px; text-decoration: none; }

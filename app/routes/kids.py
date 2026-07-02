@@ -223,6 +223,19 @@ def delete_actual(snapshot_id):
     return redirect(url_for("kids.index"))
 
 
+@kids_bp.route("/new")
+@login_required
+def new_child_page():
+    return render_template("child_form.html", child=None, today_iso=date.today().isoformat())
+
+
+@kids_bp.route("/<int:child_id>")
+@login_required
+def edit_child_page(child_id):
+    child = Child.query.filter_by(id=child_id, user_id=current_user.id).first_or_404()
+    return render_template("child_form.html", child=child, today_iso=date.today().isoformat())
+
+
 @kids_bp.route("/add", methods=["POST"])
 @login_required
 def add_child():
@@ -237,6 +250,7 @@ def add_child():
         flash(f'Added "{child.name}".', "success")
     except (ValueError, KeyError):
         flash("Enter a name and a valid date of birth.", "error")
+        return redirect(url_for("kids.new_child_page"))
     return redirect(url_for("kids.index"))
 
 
@@ -256,6 +270,7 @@ def edit_child(child_id):
     except (ValueError, KeyError):
         db.session.rollback()
         flash("Enter a name and a valid date of birth.", "error")
+        return redirect(url_for("kids.edit_child_page", child_id=child_id))
     return redirect(url_for("kids.index"))
 
 

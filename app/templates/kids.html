@@ -17,90 +17,45 @@
 </div>
 {% endif %}
 
+{% set ccy = current_user.profile.currency_symbol %}
+
 {% if not children %}
-<div class="empty-note">No children added yet — add one below.</div>
+<div class="empty-note">No children added yet.</div>
 {% endif %}
 
 {% if stats %}
-<div class="cards" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+<div class="acct-list">
   {% for s in stats %}
-  <div class="card">
-    <div class="stat-label">{{ s.child.name }} · age {{ s.child.current_age }}</div>
-    <div class="stat-value">{{ current_user.profile.currency_symbol }}{{ "{:,.0f}".format(s.current_total) }}</div>
-    <div class="stat-sub">
-      {% if not s.has_accounts %}
-        No JISA/JSIPP added yet
-      {% elif s.at_18 is not none %}
-        Projected at 18: {{ current_user.profile.currency_symbol }}{{ "{:,.0f}".format(s.at_18) }}
+  <a class="acct-card" href="{{ url_for('kids.edit_child_page', child_id=s.child.id) }}">
+    <div class="acct-main">
+      <div class="acct-name">{{ s.child.name }}</div>
+      <div class="acct-sub"><span class="badge badge-dim">age {{ s.child.current_age }}</span></div>
+    </div>
+    <div class="acct-bal">
+      {% if s.has_accounts %}
+      {{ ccy }}{{ "{:,.0f}".format(s.current_total) }}
+      <div class="acct-bal-sub">{% if s.at_18 is not none %}at 18: {{ ccy }}{{ "{:,.0f}".format(s.at_18) }}{% else %}already past 18{% endif %}</div>
       {% else %}
-        Already past 18
+      <div class="acct-bal-sub">no JISA/JSIPP yet</div>
       {% endif %}
     </div>
-  </div>
+    <span class="acct-chevron" aria-hidden="true">&rsaquo;</span>
+  </a>
   {% endfor %}
 </div>
 {% endif %}
 
+<div class="btn-row" style="margin-top:20px;">
+  <a href="{{ url_for('kids.new_child_page') }}" class="btn">+ Add a child</a>
+</div>
+
 {% if children %}
-<div class="chart-card">
+<div class="chart-card" style="margin-top:24px;">
   <h2>Projected value by age</h2>
   <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Each line uses that child's own JISA/JSIPP growth and contribution figures from the Accounts page. Dashed line marks their 18th birthday.{% if inflated %} Inflated figures.{% endif %}</p>
   <div class="chart-wrap"><canvas id="kidsChart"></canvas></div>
 </div>
 {% endif %}
-
-{% if children %}
-<div class="chart-card">
-  <h2>Children</h2>
-  <div class="cards" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
-    {% for c in children %}
-    <div class="card">
-      <form method="post" action="{{ url_for('kids.edit_child', child_id=c.id) }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <div class="field">
-          <label>Name</label>
-          <input type="text" name="name" value="{{ c.name }}" required>
-        </div>
-        <div class="field">
-          <label>Date of birth</label>
-          <input type="date" name="date_of_birth" value="{{ c.date_of_birth.isoformat() }}" max="{{ today_iso }}" required>
-        </div>
-        <div class="hint">Current age: {{ c.current_age }} — kept up to date automatically.</div>
-        <div class="btn-row">
-          <button type="submit">Save</button>
-        </div>
-      </form>
-      <form method="post" action="{{ url_for('kids.delete_child', child_id=c.id) }}" style="margin-top:8px;" data-confirm="Remove {{ c.name }} and their accounts? This can't be undone.">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <button type="submit" class="btn-danger">Remove {{ c.name }}</button>
-      </form>
-    </div>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
-
-<div class="chart-card">
-  <h2>Add a child</h2>
-  <form method="post" action="{{ url_for('kids.add_child') }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <div class="form-grid">
-      <div class="field">
-        <label>Name</label>
-        <input type="text" name="name" placeholder="e.g. Emma" required>
-      </div>
-      <div class="field">
-        <label>Date of birth</label>
-        <input type="date" name="date_of_birth" max="{{ today_iso }}" required>
-      </div>
-    </div>
-    <div class="btn-row">
-      <button type="submit">Add child</button>
-    </div>
-  </form>
-</div>
-
-<p class="dim" style="font-size:0.85rem;">Add their JISA or JSIPP from the <a href="{{ url_for('accounts.index') }}">Accounts</a> page once they're added here.</p>
 
 {% set children_with_accounts = children | selectattr('accounts') | list %}
 {% if children_with_accounts %}

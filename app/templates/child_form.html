@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit child" if child else "Add child" }}{% endblock %}
+{% block content %}
+{% set ccy = current_user.profile.currency_symbol %}
+<a href="{{ url_for('kids.index') }}" class="back-link">&lsaquo; Kids</a>
+<h1>{{ child.name if child else "Add a child" }}</h1>
+
+<div class="chart-card">
+  <form method="post" action="{{ url_for('kids.edit_child', child_id=child.id) if child else url_for('kids.add_child') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="form-grid">
+      <div class="field">
+        <label>Name</label>
+        <input type="text" name="name" value="{{ child.name if child else '' }}" placeholder="e.g. Emma" required autofocus>
+      </div>
+      <div class="field">
+        <label>Date of birth</label>
+        <input type="date" name="date_of_birth" value="{{ child.date_of_birth.isoformat() if child else '' }}" max="{{ today_iso }}" required>
+        {% if child %}<div class="hint">Current age: {{ child.current_age }} — kept up to date automatically.</div>{% endif %}
+      </div>
+    </div>
+    <div class="btn-row">
+      <button type="submit">{{ "Save changes" if child else "Add child" }}</button>
+      <a href="{{ url_for('kids.index') }}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+
+{% if child %}
+<div class="chart-card">
+  <h3>Accounts for {{ child.name }}</h3>
+  {% if child.accounts %}
+  <div class="acct-list">
+    {% for a in child.accounts %}
+    <a class="acct-card" href="{{ url_for('accounts.edit_page', account_id=a.id) }}">
+      <div class="acct-main">
+        <div class="acct-name">{{ a.name }}</div>
+        <div class="acct-sub"><span class="badge badge-brass">{{ a.type_label() }}</span></div>
+      </div>
+      <div class="acct-bal">{{ ccy }}{{ "{:,.0f}".format(a.current_balance) }}</div>
+      <span class="acct-chevron" aria-hidden="true">&rsaquo;</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="dim" style="margin:0;">No JISA/JSIPP yet — add one on the <a href="{{ url_for('accounts.index') }}">Accounts</a> page and assign it to {{ child.name }}.</p>
+  {% endif %}
+</div>
+
+<div class="chart-card danger-zone">
+  <h3>Remove child</h3>
+  <p class="dim">Deletes {{ child.name }} and their accounts (and any recorded actuals). This can't be undone.</p>
+  <form method="post" action="{{ url_for('kids.delete_child', child_id=child.id) }}" data-confirm="Remove {{ child.name }} and their accounts? This can't be undone.">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit" class="btn-danger">Remove {{ child.name }}</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}
