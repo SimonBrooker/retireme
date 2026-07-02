@@ -7,6 +7,20 @@ from dataclasses import dataclass
 UNALLOCATED_KEY = "unallocated_inheritance"
 
 
+class ChildProfile:
+    """A minimal stand-in for Profile so the projection engine can be reused
+    as-is for a child's accounts. A child never "retires" within the horizon,
+    and withdrawal rate isn't a concept that applies — we only read
+    total_net_worth back out. Lives here (not in a route) so both the Kids and
+    Actuals pages can build child projections without importing each other."""
+
+    def __init__(self, current_age, end_age):
+        self.current_age = current_age
+        self.retirement_age = current_age + 1000
+        self.end_age = end_age
+        self.withdrawal_rate = 0.0
+
+
 @dataclass
 class YearRow:
     age: int
