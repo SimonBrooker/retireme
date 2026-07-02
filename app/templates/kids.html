@@ -4,18 +4,6 @@
 <h1>Kids</h1>
 <p class="dim">Junior ISAs and Junior SIPPs for your children — tracked separately from your own net worth and retirement figures.</p>
 
-{% if children %}
-<div class="chart-card" id="inflation-toggle-card">
-  <h2>View options</h2>
-  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Not saved — just a lens on the same figures. Your actual inflation estimate is set in Settings.</p>
-  <form method="get" action="{{ url_for('kids.index') }}">
-    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-      <input type="checkbox" name="inflated" value="1" data-auto-submit {{ "checked" if inflated }}>
-      Show inflated figures (+{{ inflation_rate }}%/yr)
-    </label>
-  </form>
-</div>
-{% endif %}
 
 {% set ccy = current_user.profile.currency_symbol %}
 

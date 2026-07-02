@@ -11,7 +11,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from app.extensions import db, login_manager, limiter
 
 
-APP_VERSION = "2.3.0-beta"
+APP_VERSION = "2.3.1-beta"
 
 
 def create_app():
@@ -138,6 +138,12 @@ def create_app():
         if "csrf_token" not in session:
             session["csrf_token"] = secrets.token_hex(32)
         return {"csrf_token": session["csrf_token"]}
+
+    @app.context_processor
+    def inject_inflated():
+        # Session-backed "show inflated figures" lens, toggled from the nav on
+        # the Dashboard and Kids pages. Display-only; nothing is persisted.
+        return {"site_inflated": session.get("inflated", False)}
 
     IDLE_TIMEOUT = timedelta(minutes=30)
 

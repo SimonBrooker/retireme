@@ -25,6 +25,15 @@
         <a href="{{ url_for('settings.index') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('settings.') }}">Settings</a>
       </nav>
       <div class="nav-right">
+        {% if request.endpoint == 'dashboard.index' or (request.endpoint and request.endpoint.startswith('kids.')) %}
+        <form method="post" action="{{ url_for('dashboard.toggle_inflation') }}" style="margin:0;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="next" value="{{ request.path }}">
+          <button type="submit" class="inflation-toggle {{ 'on' if site_inflated }}" title="Show all retirement and kids figures adjusted for inflation, using the rate set in Settings.">
+            <span class="inflation-switch" aria-hidden="true"></span>Inflation
+          </button>
+        </form>
+        {% endif %}
         <span class="version-badge" data-version="{{ app_version }}">v{{ app_version }}</span>
         <span class="nav-user">{{ current_user.username }}</span>
         <form method="POST" action="{{ url_for('auth.logout') }}" style="margin:0;">

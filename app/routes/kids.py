@@ -2,7 +2,7 @@ import json
 from datetime import date
 from dataclasses import replace
 
-from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
+from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, session
 from flask_login import login_required, current_user
 
 from app.extensions import db
@@ -70,7 +70,7 @@ def _build_child_chart_data(child):
 
 
 def _show_inflated():
-    return request.args.get("inflated") == "1"
+    return bool(session.get("inflated", False))
 
 
 def _apply_inflation(rows, child, inflation_rate):

@@ -8,17 +8,6 @@
 </div>
 {% else %}
 
-<div class="chart-card" id="inflation-toggle-card">
-  <h2>View options</h2>
-  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Not saved — just a lens on the same figures. Your actual inflation estimate is set in Settings.</p>
-  <form method="get" action="{{ url_for('dashboard.index') }}">
-    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-      <input type="checkbox" name="inflated" value="1" data-auto-submit {{ "checked" if inflated }}>
-      Show inflated figures (+{{ profile.inflation_rate }}%/yr) for retirement &amp; kids accounts
-    </label>
-  </form>
-</div>
-
 {% if inflated %}
 <div class="flash success" style="margin-bottom: 18px;">
   Showing inflated figures for retirement accounts only — property and "Total net worth" stay in today's money, since property's growth rate isn't necessarily discounted for inflation the same way.
