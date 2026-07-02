@@ -1,96 +1,36 @@
 {% extends "base.html" %}
 {% block title %}Inheritance{% endblock %}
 {% block content %}
+{% set ccy = current_user.profile.currency_symbol %}
 <h1>Expected inheritance</h1>
-<p class="dim">Model expected inheritance by source, expected age, gross amount, and your share if split.</p>
+<p class="dim">Model expected inheritance by source, expected age, gross amount, and your share if split. Tap an entry to edit it.</p>
 
 {% if not inheritances %}
 <div class="empty-note">None added yet.</div>
 {% endif %}
 
-<div class="cards" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
+{% if inheritances %}
+<div class="acct-list">
   {% for i in inheritances %}
-  <div class="card">
-    <form method="post" action="{{ url_for('inheritances.edit', inheritance_id=i.id) }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-      <div class="field">
-        <label>Source</label>
-        <input type="text" name="source_name" value="{{ i.source_name }}" required>
+  <a class="acct-card" href="{{ url_for('inheritances.edit_page', inheritance_id=i.id) }}">
+    <div class="acct-main">
+      <div class="acct-name">{{ i.source_name }}</div>
+      <div class="acct-sub">
+        <span class="badge badge-dim">at age {{ i.expected_age }}</span>
+        <span class="dim" style="font-size:0.8rem;">→ {{ i.target_account.name if i.target_account else "Unallocated cash" }}</span>
       </div>
-      <div class="form-grid">
-        <div class="field">
-          <label>Age received</label>
-          <input type="number" name="expected_age" value="{{ i.expected_age }}" required>
-        </div>
-        <div class="field">
-          <label>Gross amount ({{ current_user.profile.currency_symbol }})</label>
-          <input type="number" step="0.01" name="gross_amount" value="{{ i.gross_amount }}" required>
-        </div>
-        <div class="field">
-          <label>Your share (%)</label>
-          <input type="number" step="0.1" name="share_percent" value="{{ i.share_percent }}">
-        </div>
-        <div class="field">
-          <label>Add to account</label>
-          <select name="target_account_id">
-            <option value="">Unallocated cash</option>
-            {% for a in accounts %}
-            <option value="{{ a.id }}" {{ "selected" if i.target_account_id == a.id }}>{{ a.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-      <div class="field" style="margin-top:6px;">
-        <label>Notes</label>
-        <textarea name="notes" rows="2">{{ i.notes or "" }}</textarea>
-      </div>
-      <div class="meta mono dim" style="margin: 4px 0 10px;">Net to you: {{ current_user.profile.currency_symbol }}{{ "{:,.0f}".format(i.net_amount) }}</div>
-      <div class="btn-row">
-        <button type="submit">Save</button>
-      </div>
-    </form>
-    <form method="post" action="{{ url_for('inheritances.delete', inheritance_id=i.id) }}" style="margin-top:8px;" data-confirm="Remove {{ i.source_name }}?">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-      <button type="submit" class="btn-danger">Remove</button>
-    </form>
-  </div>
+    </div>
+    <div class="acct-bal">
+      {{ ccy }}{{ "{:,.0f}".format(i.net_amount) }}
+      <div class="acct-bal-sub">net to you{% if i.share_percent != 100 %} · {{ i.share_percent }}% share{% endif %}</div>
+    </div>
+    <span class="acct-chevron" aria-hidden="true">&rsaquo;</span>
+  </a>
   {% endfor %}
 </div>
+{% endif %}
 
-<div class="chart-card" style="margin-top: 28px;">
-  <h2>Add an expected inheritance</h2>
-  <form method="post" action="{{ url_for('inheritances.add') }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <div class="form-grid">
-      <div class="field">
-        <label>Source</label>
-        <input type="text" name="source_name" placeholder="e.g. Dad" required>
-      </div>
-      <div class="field">
-        <label>Age received</label>
-        <input type="number" name="expected_age" required>
-      </div>
-      <div class="field">
-        <label>Gross amount ({{ current_user.profile.currency_symbol }})</label>
-        <input type="number" step="0.01" name="gross_amount" required>
-      </div>
-      <div class="field">
-        <label>Your share (%)</label>
-        <input type="number" step="0.1" name="share_percent" value="100">
-      </div>
-      <div class="field">
-        <label>Add to account</label>
-        <select name="target_account_id">
-          <option value="">Unallocated cash</option>
-          {% for a in accounts %}
-          <option value="{{ a.id }}">{{ a.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-    </div>
-    <div class="btn-row">
-      <button type="submit">Add</button>
-    </div>
-  </form>
+<div class="btn-row" style="margin-top:24px;">
+  <a href="{{ url_for('inheritances.new_page') }}" class="btn">+ Add an expected inheritance</a>
 </div>
 {% endblock %}
