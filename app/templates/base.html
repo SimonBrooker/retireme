@@ -19,9 +19,9 @@
       <nav>
         <a href="{{ url_for('dashboard.index') }}" class="{{ 'active' if request.endpoint == 'dashboard.index' }}">Dashboard</a>
         <a href="{{ url_for('accounts.index') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('accounts.') }}">Accounts</a>
-        <a href="{{ url_for('inheritances.index') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('inheritances.') }}">Inheritance</a>
-        <a href="{{ url_for('history.index') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('history.') }}">Actuals</a>
         <a href="{{ url_for('kids.index') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('kids.') }}">Kids</a>
+        <a href="{{ url_for('history.index') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('history.') }}">Actuals</a>
+        <a href="{{ url_for('inheritances.index') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('inheritances.') }}">Inheritance</a>
         <a href="{{ url_for('settings.index') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('settings.') }}">Settings</a>
       </nav>
       <div class="nav-right">
