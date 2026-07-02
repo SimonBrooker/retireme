@@ -4,6 +4,11 @@
 <h1>Kids</h1>
 <p class="dim">Junior ISAs and Junior SIPPs for your children — tracked separately from your own net worth and retirement figures.</p>
 
+{% if inflated %}
+<div class="flash success" style="margin-bottom: 18px;">
+  Showing inflated figures — every value here is scaled up by the {{ inflation_rate }}%/yr inflation rate set in Settings, so you can read them in future money.
+</div>
+{% endif %}
 
 {% set ccy = current_user.profile.currency_symbol %}
 
