@@ -30,24 +30,28 @@
     let inCode = false;
     let code = [];
     let inList = false;
-    const closeList = () => {
-      if (inList) { html += "</ul>"; inList = false; }
+    let para = [];  // buffer of consecutive plain lines that form one paragraph
+    const closeList = () => { if (inList) { html += "</ul>"; inList = false; } };
+    // A blank line, or any block-level element, ends the current paragraph. Soft
+    // (single) line breaks within it are reflowed into one flowing paragraph.
+    const flushPara = () => {
+      if (para.length) { html += "<p>" + inline(esc(para.join(" "))) + "</p>"; para = []; }
     };
     for (const raw of lines) {
       if (raw.trim().startsWith("```")) {
         if (inCode) { html += '<pre class="rel-code">' + esc(code.join("\n")) + "</pre>"; code = []; inCode = false; }
-        else { closeList(); inCode = true; }
+        else { flushPara(); closeList(); inCode = true; }
         continue;
       }
       if (inCode) { code.push(raw); continue; }
       const h = raw.match(/^(#{1,4})\s+(.*)$/);
-      if (h) { closeList(); html += '<div class="rel-h">' + inline(esc(h[2])) + "</div>"; continue; }
+      if (h) { flushPara(); closeList(); html += '<div class="rel-h">' + inline(esc(h[2])) + "</div>"; continue; }
       const li = raw.match(/^\s*[-*]\s+(.*)$/);
-      if (li) { if (!inList) { html += '<ul class="rel-ul">'; inList = true; } html += "<li>" + inline(esc(li[1])) + "</li>"; continue; }
-      if (raw.trim() === "") { closeList(); continue; }
-      closeList();
-      html += "<p>" + inline(esc(raw)) + "</p>";
+      if (li) { flushPara(); if (!inList) { html += '<ul class="rel-ul">'; inList = true; } html += "<li>" + inline(esc(li[1])) + "</li>"; continue; }
+      if (raw.trim() === "") { flushPara(); closeList(); continue; }
+      para.push(raw.trim());
     }
+    flushPara();
     closeList();
     if (inCode) html += '<pre class="rel-code">' + esc(code.join("\n")) + "</pre>";
     return html || '<p class="dim">No notes.</p>';

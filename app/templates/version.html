@@ -17,5 +17,5 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/releases.js') }}"></script>
+<script src="{{ url_for('static', filename='js/releases.js', v=app_version) }}"></script>
 {% endblock %}

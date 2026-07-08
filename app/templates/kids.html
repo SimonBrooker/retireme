@@ -55,6 +55,6 @@
 {% endif %}
 {% endblock %}
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/kids-charts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart.umd.min.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/kids-charts.js', v=app_version) }}"></script>
 {% endblock %}

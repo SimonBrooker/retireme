@@ -116,7 +116,7 @@
 {% endif %}
 {% endblock %}
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/history-charts.js') }}"></script>
-<script src="{{ url_for('static', filename='js/actuals-date.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart.umd.min.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/history-charts.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/actuals-date.js', v=app_version) }}"></script>
 {% endblock %}

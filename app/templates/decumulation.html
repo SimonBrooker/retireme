@@ -233,7 +233,7 @@
 {% endblock %}
 {% block scripts %}
 {% if has_accounts %}
-<script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/decumulation-charts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart.umd.min.js', v=app_version) }}"></script>
+<script src="{{ url_for('static', filename='js/decumulation-charts.js', v=app_version) }}"></script>
 {% endif %}
 {% endblock %}
