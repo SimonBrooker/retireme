@@ -30,6 +30,15 @@ def _show_inflated():
     return bool(session.get("inflated", False))
 
 
+@dashboard_bp.route("/version")
+@login_required
+def version():
+    """Version + release-history page. The release list is fetched client-side
+    from the GitHub API (see releases.js) — same pattern the nav badge already
+    uses, and CSP already allows api.github.com."""
+    return render_template("version.html")
+
+
 @dashboard_bp.route("/toggle-inflation", methods=["POST"])
 @login_required
 def toggle_inflation():

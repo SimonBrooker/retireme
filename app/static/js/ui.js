@@ -14,16 +14,10 @@ function checkForUpdate() {
     .then((data) => {
       const latest = (data.tag_name || "").replace(/^v/, "");
       if (latest && latest !== current) {
+        // The badge is a link to the in-app version page (which lists releases
+        // and links out to GitHub) — here we just flag that an update exists.
         badge.classList.add("update-available");
-        badge.dataset.tooltip = `v${latest} available`;
-        badge.setAttribute("role", "link");
-        badge.setAttribute("tabindex", "0");
-        badge.addEventListener("click", () => {
-          window.open(data.html_url, "_blank", "noopener");
-        });
-        badge.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" || e.key === " ") window.open(data.html_url, "_blank", "noopener");
-        });
+        badge.dataset.tooltip = `v${latest} available — click for details`;
       }
     })
     .catch(() => {}); // silently ignore — no network or rate limit

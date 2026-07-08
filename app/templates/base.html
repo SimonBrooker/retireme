@@ -34,7 +34,7 @@
           </button>
         </form>
         {% endif %}
-        <span class="version-badge" data-version="{{ app_version }}">v{{ app_version }}</span>
+        <a href="{{ url_for('dashboard.version') }}" class="version-badge" data-version="{{ app_version }}" title="Version &amp; release notes">v{{ app_version }}</a>
         <span class="nav-user">{{ current_user.username }}</span>
         <form method="POST" action="{{ url_for('auth.logout') }}" style="margin:0;">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Version{% endblock %}
+{% block content %}
+<h1>Version &amp; releases</h1>
+
+<div class="chart-card">
+  <div class="stat-label">Running version</div>
+  <div class="stat-value">v{{ app_version }}</div>
+  <div id="version-status" class="dim" style="margin-top:8px;">Checking for updates…</div>
+</div>
+
+<h2 class="acct-cat" style="margin-top:26px;">Release history</h2>
+<div id="releases"
+     data-repo="SimonBrooker/retireme"
+     data-current="{{ app_version }}">
+  <div class="empty-note">Loading releases…</div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/releases.js') }}"></script>
+{% endblock %}
