@@ -4,7 +4,6 @@ from flask import Blueprint, render_template, jsonify, redirect, url_for, reques
 from flask_login import login_required, current_user
 
 from app.projections import project, UNALLOCATED_KEY
-from app.routes.auth import _safe_next
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -39,13 +38,20 @@ def version():
     return render_template("version.html")
 
 
+# The inflation switch only ever appears on the Dashboard and Kids pages, so the
+# toggle only needs to return to one of those. Mapping a small whitelist to real
+# endpoints means no user-supplied URL ever reaches redirect() — safe by
+# construction, no open-redirect surface to validate.
+_TOGGLE_DESTS = {"dashboard": "dashboard.index", "kids": "kids.index"}
+
+
 @dashboard_bp.route("/toggle-inflation", methods=["POST"])
 @login_required
 def toggle_inflation():
     """Flip the session-backed 'show inflated figures' lens and return to the
     page the switch was toggled from. Display-only — nothing is persisted."""
     session["inflated"] = not session.get("inflated", False)
-    dest = _safe_next(request.form.get("next")) or url_for("dashboard.index")
+    dest = url_for(_TOGGLE_DESTS.get(request.form.get("next"), "dashboard.index"))
     return redirect(dest)
 
 

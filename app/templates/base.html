@@ -28,7 +28,7 @@
         {% if request.endpoint == 'dashboard.index' or (request.endpoint and request.endpoint.startswith('kids.')) %}
         <form method="post" action="{{ url_for('dashboard.toggle_inflation') }}" style="margin:0;">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-          <input type="hidden" name="next" value="{{ request.path }}">
+          <input type="hidden" name="next" value="{{ 'kids' if request.endpoint and request.endpoint.startswith('kids.') else 'dashboard' }}">
           <button type="submit" class="inflation-toggle {{ 'on' if site_inflated }}" title="Show all retirement and kids figures adjusted for inflation, using the rate set in Settings.">
             <span class="inflation-switch" aria-hidden="true"></span>Inflation
           </button>
