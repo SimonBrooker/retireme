@@ -35,7 +35,18 @@
   <div class="card">
     <div class="stat-label">Projected at age {{ profile.end_age }}</div>
     <div class="stat-value">{{ profile.currency_symbol }}{{ "{:,.0f}".format(final_row.retirement_total) }}</div>
-    <div class="stat-sub">{{ profile.currency_symbol }}{{ "{:,.0f}".format(final_row.total_net_worth) }} total net worth · {{ profile.currency_symbol }}{{ "{:,.0f}".format(final_row.withdrawal_capacity) }}/yr (retirement assets only)</div>
+    <div class="stat-sub">
+      {% if annual_spend %}
+        {% if runs_out_age %}
+        <span style="color: var(--rust);">Runs out at age {{ runs_out_age }}</span> drawing {{ profile.currency_symbol }}{{ "{:,.0f}".format(annual_spend) }}/yr (today's money)
+        {% else %}
+        <span style="color: var(--moss);">Lasts to {{ profile.end_age }}+</span> drawing {{ profile.currency_symbol }}{{ "{:,.0f}".format(annual_spend) }}/yr (today's money)
+        {% endif %}
+        · {{ profile.currency_symbol }}{{ "{:,.0f}".format(final_row.total_net_worth) }} total net worth
+      {% else %}
+        {{ profile.currency_symbol }}{{ "{:,.0f}".format(final_row.total_net_worth) }} total net worth · {{ profile.currency_symbol }}{{ "{:,.0f}".format(final_row.withdrawal_capacity) }}/yr (retirement assets only)
+      {% endif %}
+    </div>
   </div>
   {% if profile.annual_expenses_target %}
   {% set ns = namespace(income_goal_age=None) %}
@@ -67,13 +78,13 @@
 
 <div class="chart-card">
   <h2>Net worth by account</h2>
-  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Hover a point for that year's growth and contribution. Dashed lines mark today, your target retirement age, and (if set) the age your withdrawal capacity first reaches your target income. Points marked with a dot are actual recorded figures, not projections.{% if inflated %} Retirement accounts shown inflated; property is always today's money.{% endif %}</p>
+  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Hover a point for that year's growth, contribution, and (once retired) what's drawn. From the year after your retirement age, your target income — or your {{ profile.withdrawal_rate }}% withdrawal rate of the pot at retirement, if no target is set — is drawn from retirement assets each year. Dashed lines mark today, your target retirement age, and (if set) the age your withdrawal capacity first reaches your target income. Points marked with a dot are actual recorded figures, not projections.{% if inflated %} Retirement accounts shown inflated; property is always today's money.{% endif %}</p>
   <div class="chart-wrap chart-wrap--lg"><canvas id="compositionChart"></canvas></div>
 </div>
 
 <div class="chart-card">
   <h2>Withdrawal capacity</h2>
-  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Annual income available at your {{ profile.withdrawal_rate }}% withdrawal rate — based on retirement assets only, not your total net worth.{% if inflated %} Inflated figures.{% endif %}</p>
+  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Annual income available at your {{ profile.withdrawal_rate }}% withdrawal rate — based on retirement assets only, not your total net worth. "Drawn from pot" is what the projection actually takes out each year in retirement; it falls away if the pot runs dry.{% if inflated %} Inflated figures.{% endif %}</p>
   <div class="chart-wrap chart-wrap--sm"><canvas id="withdrawalChart"></canvas></div>
 </div>
 
@@ -94,6 +105,7 @@
           <th>Retirement assets</th>
           <th>% diff</th>
           <th>Withdrawal/yr</th>
+          <th>Drawn</th>
           {% for a in accounts if not a.include_in_withdrawal_calc %}<th>{{ a.name }}</th>{% endfor %}
           <th>Total net worth</th>
         </tr>
@@ -114,6 +126,7 @@
           <td>{{ "{:,.0f}".format(r.retirement_total) }}</td>
           <td class="{{ 'diff-positive' if r.retirement_pct_diff and r.retirement_pct_diff > 0 else 'diff-negative' if r.retirement_pct_diff and r.retirement_pct_diff < 0 else 'dim' }}">{% if r.retirement_pct_diff is not none %}{{ "{:+.1f}%".format(r.retirement_pct_diff) }}{% else %}—{% endif %}</td>
           <td>{{ "{:,.0f}".format(r.withdrawal_capacity) }}</td>
+          <td class="{{ 'diff-negative' if r.shortfall > 0.5 else '' }}" {% if r.shortfall > 0.5 %}title="Short by {{ "{:,.0f}".format(r.shortfall) }} — pot exhausted"{% endif %}>{% if r.withdrawn or r.shortfall %}{{ "{:,.0f}".format(r.withdrawn) }}{% else %}<span class="dim">—</span>{% endif %}</td>
           {% for a in accounts if not a.include_in_withdrawal_calc %}
           <td>
             {% if a.id in r.balances %}{{ "{:,.0f}".format(r.balances[a.id]) }}{% if r.is_actual.get(a.id) %}<span class="dim" title="Actual recorded figure">·</span>{% endif %}{% else %}<span class="dim">—</span>{% endif %}

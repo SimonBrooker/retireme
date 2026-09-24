@@ -89,6 +89,7 @@ def _apply_inflation(rows, accounts, profile):
         new_balances = dict(r.balances)
         new_growth = dict(r.growth)
         new_contribution = dict(r.contribution)
+        new_withdrawal = dict(r.withdrawal)
         for aid in retirement_ids:
             if new_balances.get(aid) is not None:
                 new_balances[aid] = new_balances[aid] * factor
@@ -96,6 +97,8 @@ def _apply_inflation(rows, accounts, profile):
                 new_growth[aid] = new_growth[aid] * factor
             if new_contribution.get(aid) is not None:
                 new_contribution[aid] = new_contribution[aid] * factor
+            if new_withdrawal.get(aid) is not None:
+                new_withdrawal[aid] = new_withdrawal[aid] * factor
 
         new_retirement_total = r.retirement_total * factor
         new_withdrawal_capacity = r.withdrawal_capacity * factor
@@ -115,6 +118,9 @@ def _apply_inflation(rows, accounts, profile):
                 balances=new_balances,
                 growth=new_growth,
                 contribution=new_contribution,
+                withdrawal=new_withdrawal,
+                withdrawn=r.withdrawn * factor,
+                shortfall=r.shortfall * factor,
                 retirement_total=new_retirement_total,
                 withdrawal_capacity=new_withdrawal_capacity,
                 total_net_worth=new_total_net_worth,
@@ -169,6 +175,15 @@ def _growth_scenarios(profile, accounts, inheritances, rows, inflated=False):
     return ages, series
 
 
+def _drawdown_summary(rows):
+    """(annual_spend, runs_out_age) from projected rows. annual_spend is the
+    planned yearly draw (drawn + any shortfall) in whatever terms the rows are
+    in; runs_out_age is the first age the pot couldn't cover it, or None."""
+    spend = next((r.withdrawn + r.shortfall for r in rows if r.withdrawn or r.shortfall), None)
+    runs_out_age = next((r.age for r in rows if r.shortfall > 0.5), None)
+    return spend, runs_out_age
+
+
 @dashboard_bp.route("/")
 @login_required
 def index():
@@ -178,6 +193,8 @@ def index():
     profile = current_user.profile
     accounts = _adult_accounts(current_user)
     rows = project(profile, accounts, current_user.inheritances)
+    # Summarised before the inflation lens, so the spend reads in today's money.
+    annual_spend, runs_out_age = _drawdown_summary(rows)
     inflated = _show_inflated()
     if inflated:
         rows = _apply_inflation(rows, accounts, profile)
@@ -198,6 +215,8 @@ def index():
         final_row=final_row,
         has_accounts=len(accounts) > 0,
         inflated=inflated,
+        annual_spend=annual_spend,
+        runs_out_age=runs_out_age,
     )
 
 
@@ -227,6 +246,7 @@ def api_projection():
                 "balances": [at(r.balances, a.id) for r in rows],
                 "growth": [at(r.growth, a.id) for r in rows],
                 "contribution": [at(r.contribution, a.id) for r in rows],
+                "withdrawal": [at(r.withdrawal, a.id) for r in rows],
                 "is_actual": [bool(r.is_actual.get(a.id)) for r in rows],
             }
         )
@@ -255,6 +275,8 @@ def api_projection():
             "total_net_worth": [round(r.total_net_worth, 2) for r in rows],
             "retirement_total": [round(r.retirement_total, 2) for r in rows],
             "withdrawal_capacity": [round(r.withdrawal_capacity, 2) for r in rows],
+            "withdrawn": [round(r.withdrawn, 2) if (r.withdrawn or r.shortfall) else None for r in rows],
+            "runs_out_age": next((r.age for r in rows if r.shortfall > 0.5), None),
             "inheritance_received": [round(r.inheritance_received_this_year, 2) for r in rows],
             "unallocated_inheritance": [at(r.balances, UNALLOCATED_KEY, 0.0) for r in rows],
             "accounts": account_series,

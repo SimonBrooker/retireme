@@ -119,13 +119,13 @@ async function loadDashboardCharts() {
     }
     const growth = meta.growth[i];
     const contribution = meta.contribution[i];
+    const withdrawal = meta.withdrawal ? meta.withdrawal[i] : null;
     if (growth === null && contribution === null) {
       return `${ctx.dataset.label}: ${fmtMoney(value)}`;
     }
-    return [
-      `${ctx.dataset.label}: ${fmtMoney(value)}`,
-      `  growth +${fmtMoney(growth)} · contribution +${fmtMoney(contribution)}`,
-    ];
+    let detail = `  growth +${fmtMoney(growth)} · contribution +${fmtMoney(contribution)}`;
+    if (withdrawal) detail += ` · drawn −${fmtMoney(withdrawal)}`;
+    return [`${ctx.dataset.label}: ${fmtMoney(value)}`, detail];
   }
 
   function compositionTitle(items) {
@@ -190,6 +190,18 @@ async function loadDashboardCharts() {
       tension: 0.15,
     },
   ];
+  if (data.withdrawn && data.withdrawn.some((v) => v !== null)) {
+    withdrawalDatasets.push({
+      label: "Drawn from pot",
+      data: data.withdrawn,
+      borderColor: cssVar("--brass") || "#c8932b",
+      backgroundColor: "transparent",
+      pointRadius: 0,
+      borderWidth: 2,
+      tension: 0.15,
+      spanGaps: false,
+    });
+  }
   if (data.annual_expenses_target) {
     withdrawalDatasets.push({
       label: "Target annual income",

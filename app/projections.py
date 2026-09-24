@@ -2,7 +2,7 @@
 Pure calculation engine for retirement projections.
 Deliberately framework-free so it's easy to unit test.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 UNALLOCATED_KEY = "unallocated_inheritance"
 
@@ -35,6 +35,19 @@ class YearRow:
     withdrawal_capacity: float  # retirement_total * withdrawal_rate
     inheritance_received_this_year: float = 0.0
     retirement_pct_diff: float = None  # % change in retirement_total vs the previous age's row
+    withdrawal: dict = field(default_factory=dict)  # account_id -> amount drawn this year (None if overridden)
+    withdrawn: float = 0.0  # total drawn from retirement assets this year
+    shortfall: float = 0.0  # planned spending the pot couldn't cover this year
+
+
+def _annual_spend(profile, pot_at_retirement):
+    """How much is drawn each year once retired, in today's money. The target
+    income if one is set; otherwise the classic "4% rule" — the withdrawal rate
+    applied to the pot at retirement, then held constant in real terms."""
+    target = getattr(profile, "annual_expenses_target", None)
+    if target:
+        return float(target)
+    return pot_at_retirement * (profile.withdrawal_rate / 100.0)
 
 
 def _snapshots_by_account(accounts):
@@ -67,12 +80,18 @@ def project(profile, accounts, inheritances):
     balances = {}  # populated once we reach current_age; before that we only show recorded snapshots
     rows = []
     prev_retirement_total = None
+    # Set from the pot at retirement (or today, if already retired); drawing
+    # starts the following year so the retirement-age row is the pot you retire with.
+    annual_spend = None
 
     for age in range(start_age, profile.end_age + 1):
         is_retired = age >= profile.retirement_age
         is_historical = age < profile.current_age
         growth_this_year = {}
         contribution_this_year = {}
+        withdrawal_this_year = {}
+        withdrawn = 0.0
+        shortfall = 0.0
         is_actual_this_year = {}
         row_balances = {}
 
@@ -117,6 +136,19 @@ def project(profile, accounts, inheritances):
                     else:
                         balances[UNALLOCATED_KEY] += inh.net_amount
 
+                # Retirement spending: draw the year's income from retirement
+                # assets, pro-rata to their balances. If the pot can't cover it,
+                # it drains to zero and the gap is recorded as a shortfall.
+                if annual_spend:
+                    pot = sum(max(balances.get(aid, 0.0), 0.0) for aid in eligible_ids)
+                    withdrawn = min(annual_spend, pot)
+                    shortfall = annual_spend - withdrawn
+                    for aid in eligible_ids:
+                        bal = max(balances.get(aid, 0.0), 0.0)
+                        share = withdrawn * (bal / pot) if pot else 0.0
+                        balances[aid] = bal - share
+                        withdrawal_this_year[aid] = share
+
                 # An actual recorded figure always wins over the computed one, and
                 # becomes the new anchor that future years compound from.
                 for a in accounts:
@@ -126,6 +158,8 @@ def project(profile, accounts, inheritances):
                         is_actual_this_year[a.id] = True
                         growth_this_year[a.id] = None
                         contribution_this_year[a.id] = None
+                        if a.id in withdrawal_this_year:
+                            withdrawal_this_year[a.id] = None
 
             row_balances = dict(balances)
 
@@ -134,6 +168,9 @@ def project(profile, accounts, inheritances):
         total = sum(row_balances.values())
         retirement_total = sum(v for aid, v in row_balances.items() if aid in eligible_ids)
         withdrawal_capacity = retirement_total * (profile.withdrawal_rate / 100.0)
+
+        if annual_spend is None and is_retired and not is_historical:
+            annual_spend = _annual_spend(profile, retirement_total)
 
         if prev_retirement_total:  # None or 0 both mean "no meaningful base to diff against"
             retirement_pct_diff = (
@@ -157,6 +194,9 @@ def project(profile, accounts, inheritances):
                 withdrawal_capacity=withdrawal_capacity,
                 inheritance_received_this_year=received_this_year,
                 retirement_pct_diff=retirement_pct_diff,
+                withdrawal=withdrawal_this_year,
+                withdrawn=withdrawn,
+                shortfall=shortfall,
             )
         )
     return rows

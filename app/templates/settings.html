@@ -95,6 +95,7 @@
     <div class="field">
       <label>Target annual income in retirement ({{ profile.currency_symbol }}, optional)</label>
       <input type="number" step="100" name="annual_expenses_target" value="{{ profile.annual_expenses_target or '' }}">
+      <div class="hint">In today's money. Projections draw this from your retirement assets each year after you retire, so you can see whether the money lasts. Leave blank to draw your withdrawal rate of the pot at retirement instead.</div>
     </div>
     <div class="btn-row">
       <button type="submit">Save</button>
