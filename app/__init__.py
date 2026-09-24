@@ -11,7 +11,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from app.extensions import db, login_manager, limiter
 
 
-APP_VERSION = "2.7.0-beta"
+APP_VERSION = "2.7.1-beta"
 
 
 def create_app():
@@ -284,6 +284,10 @@ def _ensure_schema():
         account_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(account)"))}
         if "child_id" not in account_cols:
             conn.execute(text("ALTER TABLE account ADD COLUMN child_id INTEGER"))
+            conn.commit()
+
+        if "balance_updated_at" not in account_cols:
+            conn.execute(text("ALTER TABLE account ADD COLUMN balance_updated_at DATETIME"))
             conn.commit()
 
         snapshot_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(snapshot)"))}

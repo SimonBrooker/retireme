@@ -96,6 +96,9 @@ CURRENCY_KEYS = [c[0] for c in CURRENCIES]
 CURRENCY_SYMBOLS = {c[0]: c[2] for c in CURRENCIES}
 CURRENCY_FLAGS = {c[0]: c[3] for c in CURRENCIES}
 CURRENCY_NAMES = {c[0]: c[1] for c in CURRENCIES}
+# An account whose balance hasn't been updated for this long gets flagged.
+STALE_AFTER_DAYS = 90
+
 DEFAULT_CURRENCY = "GBP"  # matches the £ this app always used before currency support existed
 
 
@@ -165,6 +168,9 @@ class Account(db.Model):
     stop_contributions_at_retirement = db.Column(db.Boolean, default=True, nullable=False)
     include_in_withdrawal_calc = db.Column(db.Boolean, default=True, nullable=False)
     notes = db.Column(db.Text, nullable=True)
+    # When current_balance was last set — by editing the account or by recording
+    # an actual at the owner's current age. NULL for accounts that predate this.
+    balance_updated_at = db.Column(db.DateTime, nullable=True)
 
     snapshots = db.relationship(
         "Snapshot", backref="account", cascade="all, delete-orphan", order_by="Snapshot.age"
@@ -172,6 +178,57 @@ class Account(db.Model):
 
     def type_label(self) -> str:
         return dict(ACCOUNT_TYPES).get(self.type, self.type)
+
+    @property
+    def owner_current_age(self) -> int:
+        """Age of whoever owns the account — the child for junior accounts."""
+        return self.child.current_age if self.child else self.user.profile.current_age
+
+    @property
+    def last_updated(self):
+        """Date the balance was last known to be right: an explicit balance
+        edit, or the latest dated actual. Undated (age-only) actuals only count
+        when they're for the owner's current age. None if nothing's recorded."""
+        dates = []
+        if self.balance_updated_at:
+            dates.append(self.balance_updated_at.date())
+        owner_age = self.owner_current_age
+        for s in self.snapshots:
+            if s.snapshot_date:
+                dates.append(s.snapshot_date)
+            elif s.age == owner_age and s.recorded_at:
+                dates.append(s.recorded_at.date())
+        dates = [d for d in dates if d <= date.today()]
+        return max(dates) if dates else None
+
+    @property
+    def days_since_update(self):
+        d = self.last_updated
+        return (date.today() - d).days if d else None
+
+    @property
+    def is_stale(self) -> bool:
+        """Worth nudging about: no update in STALE_AFTER_DAYS, or never recorded.
+        Property is exempt — valuations change rarely and aren't statement-driven."""
+        if self.type == "PROPERTY":
+            return False
+        days = self.days_since_update
+        return days is None or days > STALE_AFTER_DAYS
+
+    @property
+    def updated_label(self) -> str:
+        days = self.days_since_update
+        if days is None:
+            return "No update recorded"
+        if days == 0:
+            return "Updated today"
+        if days < 14:
+            return f"Updated {days} day{'s' if days != 1 else ''} ago"
+        if days < 60:
+            return f"Updated {days // 7} weeks ago"
+        if days < 365:
+            return f"Updated {days // 30} months ago"
+        return "Updated over a year ago"
 
     @property
     def is_kid_account(self) -> bool:

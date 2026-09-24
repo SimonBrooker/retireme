@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 
@@ -79,6 +81,7 @@ def edit_page(account_id):
 def add():
     try:
         acc = _account_from_form(Account(user_id=current_user.id), request.form)
+        acc.balance_updated_at = datetime.now(timezone.utc)
         if acc.child_id and not Child.query.filter_by(
             id=acc.child_id, user_id=current_user.id
         ).first():
@@ -100,7 +103,10 @@ def add():
 def edit(account_id):
     acc = Account.query.filter_by(id=account_id, user_id=current_user.id).first_or_404()
     try:
+        previous_balance = acc.current_balance
         _account_from_form(acc, request.form)
+        if acc.current_balance != previous_balance:
+            acc.balance_updated_at = datetime.now(timezone.utc)
         if acc.child_id and not Child.query.filter_by(
             id=acc.child_id, user_id=current_user.id
         ).first():

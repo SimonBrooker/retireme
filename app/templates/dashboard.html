@@ -76,6 +76,22 @@
   {% endif %}
 </div>
 
+{% if stale_accounts %}
+<div class="chart-card">
+  <h2>Needs updating</h2>
+  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">These balances haven't been updated in over 3 months, so the projections may be drifting from reality. Record an actual to refresh them.</p>
+  <div class="stale-list">
+    {% for a in stale_accounts %}
+    <div class="stale-row">
+      <span>{{ a.name }}{% if a.child %} <span class="dim">· {{ a.child.name }}</span>{% endif %}</span>
+      <span class="stale-age">{{ a.updated_label }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="btn-row" style="margin-top:12px;"><a href="{{ url_for('history.index') }}" class="btn">Record actuals</a></div>
+</div>
+{% endif %}
+
 <div class="chart-card">
   <h2>Net worth by account</h2>
   <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Hover a point for that year's growth, contribution, and (once retired) what's drawn. From the year after your retirement age, your target income — or your {{ profile.withdrawal_rate }}% withdrawal rate of the pot at retirement, if no target is set — is drawn from retirement assets each year. Dashed lines mark today, your target retirement age, and (if set) the age your withdrawal capacity first reaches your target income. Points marked with a dot are actual recorded figures, not projections.{% if inflated %} Retirement accounts shown inflated; property is always today's money.{% endif %}</p>

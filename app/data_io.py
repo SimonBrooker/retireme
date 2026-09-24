@@ -45,6 +45,7 @@ def export_user_data(profile, accounts, inheritances, children=None):
                 "stop_contributions_at_retirement": a.stop_contributions_at_retirement,
                 "include_in_withdrawal_calc": a.include_in_withdrawal_calc,
                 "notes": a.notes,
+                "balance_updated_at": a.balance_updated_at.isoformat() if a.balance_updated_at else None,
                 "child_name": a.child.name if a.child else None,
                 "snapshots": [
                     {
@@ -182,6 +183,16 @@ def validate_payload(payload):
     return True
 
 
+def _parse_datetime(raw):
+    """ISO datetime from an export, or None if absent/malformed (optional field)."""
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw)
+    except (ValueError, TypeError):
+        return None
+
+
 def build_import_objects(payload):
     """
     Pure mapping from a validated payload to transient (unattached) ORM objects.
@@ -238,6 +249,7 @@ def build_import_objects(payload):
             stop_contributions_at_retirement=bool(a.get("stop_contributions_at_retirement", True)),
             include_in_withdrawal_calc=bool(a.get("include_in_withdrawal_calc", True)),
             notes=a.get("notes"),
+            balance_updated_at=_parse_datetime(a.get("balance_updated_at")),
         )
         if acc.type == "PROPERTY":
             acc.annual_contribution = 0.0

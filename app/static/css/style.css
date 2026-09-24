@@ -491,6 +491,10 @@ button:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); out
 .acct-sub { margin-top: 4px; }
 .acct-bal { font-weight: 600; font-size: 0.95rem; font-variant-numeric: tabular-nums; color: var(--text); white-space: nowrap; text-align: right; }
 .acct-bal-sub { font-weight: 400; font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+.stale-age { color: var(--warning) !important; }
+.stale-list { display: flex; flex-direction: column; }
+.stale-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--border-soft); font-size: 0.9rem; }
+.stale-row:first-child { border-top: none; }
 .acct-chevron { color: var(--text-dim); font-size: 1.3rem; line-height: 1; flex-shrink: 0; }
 
 .back-link { display: inline-block; font-size: 13px; color: var(--text-muted); margin-bottom: 10px; text-decoration: none; }

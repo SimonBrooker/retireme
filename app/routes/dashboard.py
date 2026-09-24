@@ -199,6 +199,13 @@ def index():
     if inflated:
         rows = _apply_inflation(rows, accounts, profile)
 
+    # All accounts — yours and your children's — whose balance is overdue an
+    # update, oldest (or never-recorded) first.
+    stale_accounts = sorted(
+        (a for a in current_user.accounts if a.is_stale),
+        key=lambda a: (a.days_since_update is not None, -(a.days_since_update or 0)),
+    )
+
     current_row = next(r for r in rows if r.age == profile.current_age)
     retirement_row = next((r for r in rows if r.age == profile.retirement_age), rows[-1])
     final_row = rows[-1]
@@ -217,6 +224,7 @@ def index():
         inflated=inflated,
         annual_spend=annual_spend,
         runs_out_age=runs_out_age,
+        stale_accounts=stale_accounts,
     )
 
 

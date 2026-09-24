@@ -1,5 +1,5 @@
 import json
-from datetime import date
+from datetime import date, datetime, timezone
 
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
@@ -142,15 +142,30 @@ def add():
         existing.balance = balance
         existing.note = note
         existing.snapshot_date = snap_date
-        flash(f"Updated {account.name} at age {age}.", "success")
+        message = f"Updated {account.name} at age {age}"
     else:
         db.session.add(
             Snapshot(
                 account_id=account.id, age=age, snapshot_date=snap_date, balance=balance, note=note
             )
         )
-        flash(f"Recorded {account.name} at age {age}.", "success")
+        message = f"Recorded {account.name} at age {age}"
+
+    # An actual for the owner's current age is today's balance, so it becomes the
+    # account's current balance too — one source of truth, and it survives the
+    # next birthday (when the projection falls back to current_balance). Past-age
+    # actuals (history) and future-age ones (projection corrections) don't touch it.
+    if age == account.owner_current_age and (snap_date is None or snap_date <= date.today()):
+        account.current_balance = balance
+        # Freshness follows the statement date when there is one, so logging an
+        # older statement doesn't make the account look updated today.
+        account.balance_updated_at = (
+            datetime.combine(snap_date, datetime.min.time()) if snap_date else datetime.now(timezone.utc)
+        )
+        message += " — current balance updated too"
+
     db.session.commit()
+    flash(message + ".", "success")
     return redirect(url_for("history.index"))
 
 

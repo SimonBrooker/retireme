@@ -27,7 +27,10 @@
           {% endif %}
         </div>
       </div>
-      <div class="acct-bal">{{ current_user.profile.currency_symbol }}{{ "{:,.0f}".format(a.current_balance) }}</div>
+      <div class="acct-bal">
+        {{ current_user.profile.currency_symbol }}{{ "{:,.0f}".format(a.current_balance) }}
+        <div class="acct-bal-sub {{ 'stale-age' if a.is_stale }}">{{ a.updated_label }}</div>
+      </div>
       <span class="acct-chevron" aria-hidden="true">&rsaquo;</span>
     </a>
     {% endfor %}

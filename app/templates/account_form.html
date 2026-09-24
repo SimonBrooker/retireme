@@ -36,6 +36,7 @@
       <div class="field">
         <label>Current balance ({{ ccy }})</label>
         <input type="number" step="0.01" name="current_balance" value="{{ account.current_balance if account else 0 }}" required>
+        {% if account %}<div class="hint {{ 'stale-age' if account.is_stale }}">{{ account.updated_label }}. Recording an actual for today on the <a href="{{ url_for('history.index') }}">Actuals</a> page updates this too.</div>{% endif %}
       </div>
       <div class="field">
         <label>Growth rate (%/yr)</label>
