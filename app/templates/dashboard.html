@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
+{% set ccy = profile.currency_symbol %}
 
 {% if not has_accounts %}
 <div class="empty-note">
@@ -10,109 +11,144 @@
 
 {% if inflated %}
 <div class="flash success" style="margin-bottom: 18px;">
-  Showing inflated figures for retirement accounts only — property and "Total net worth" stay in today's money, since property's growth rate isn't necessarily discounted for inflation the same way.
+  Showing inflated figures for retirement accounts only — property and "Total net worth" stay in today's money, since property's growth rate isn't necessarily discounted for inflation the same way. The financial-independence summary stays in today's money.
 </div>
 {% endif %}
-{% endif %}
 
-<div class="ledger-total">
-  <div class="label">Total net worth today</div>
-  <div class="value mono">{{ profile.currency_symbol }}{{ "{:,.0f}".format(current_row.total_net_worth) }}</div>
-  <div class="caption">as at age {{ current_row.age }} · includes everything, e.g. property equity</div>
-</div>
-
-<div class="cards">
-  <div class="card">
-    <div class="stat-label">Retirement assets today</div>
-    <div class="stat-value">{{ profile.currency_symbol }}{{ "{:,.0f}".format(current_row.retirement_total) }}</div>
-    <div class="stat-sub">Excludes anything not flagged for withdrawal — e.g. your home</div>
-  </div>
-  <div class="card">
-    <div class="stat-label">At retirement (age {{ profile.retirement_age }})</div>
-    <div class="stat-value">{{ profile.currency_symbol }}{{ "{:,.0f}".format(retirement_row.retirement_total) }}</div>
-    <div class="stat-sub">{{ profile.currency_symbol }}{{ "{:,.0f}".format(retirement_row.total_net_worth) }} total net worth · {{ profile.currency_symbol }}{{ "{:,.0f}".format(retirement_row.withdrawal_capacity) }}/yr at {{ profile.withdrawal_rate }}% (retirement assets only)</div>
-  </div>
-  <div class="card">
-    <div class="stat-label">Projected at age {{ profile.end_age }}</div>
-    <div class="stat-value">{{ profile.currency_symbol }}{{ "{:,.0f}".format(final_row.retirement_total) }}</div>
-    <div class="stat-sub">
-      {% if annual_spend %}
-        {% if runs_out_age %}
-        <span style="color: var(--rust);">Runs out at age {{ runs_out_age }}</span> drawing {{ profile.currency_symbol }}{{ "{:,.0f}".format(annual_spend) }}/yr (today's money)
-        {% else %}
-        <span style="color: var(--moss);">Lasts to {{ profile.end_age }}+</span> drawing {{ profile.currency_symbol }}{{ "{:,.0f}".format(annual_spend) }}/yr (today's money)
-        {% endif %}
-        · {{ profile.currency_symbol }}{{ "{:,.0f}".format(final_row.total_net_worth) }} total net worth
-      {% else %}
-        {{ profile.currency_symbol }}{{ "{:,.0f}".format(final_row.total_net_worth) }} total net worth · {{ profile.currency_symbol }}{{ "{:,.0f}".format(final_row.withdrawal_capacity) }}/yr (retirement assets only)
-      {% endif %}
+{# ── Headline: am I on track? ─────────────────────────────── #}
+<div class="chart-card fi-hero">
+  {% if fi %}
+  <div class="fi-head">
+    <div>
+      <div class="stat-label">Financial independence</div>
+      <div class="fi-headline">
+        {% if fi.progress >= 1 %}FI number reached{% else %}{{ "%.0f"|format(fi.progress_pct) }}% of the way there{% endif %}
+      </div>
     </div>
+    <span class="fi-verdict fi-{{ fi.kind }}">{{ fi.text }}</span>
   </div>
-  {% if profile.annual_expenses_target %}
-  {% set ns = namespace(income_goal_age=None) %}
-  {% for r in rows %}
-    {% if ns.income_goal_age is none and r.withdrawal_capacity >= profile.annual_expenses_target %}
-      {% set ns.income_goal_age = r.age %}
-    {% endif %}
-  {% endfor %}
-  <div class="card">
-    <div class="stat-label">Target income vs capacity</div>
-    <div class="stat-value">{{ profile.currency_symbol }}{{ "{:,.0f}".format(profile.annual_expenses_target) }}</div>
-    <div class="stat-sub">
-      {% if retirement_row.withdrawal_capacity >= profile.annual_expenses_target %}
-        {% if ns.income_goal_age and ns.income_goal_age < profile.retirement_age %}
-          {% set years_early = profile.retirement_age - ns.income_goal_age %}
-          <span style="color: var(--moss);">Projected to reach goal at age {{ ns.income_goal_age }} — {{ years_early }} year{{ 's' if years_early != 1 }} before retirement</span>
-        {% else %}
-          <span style="color: var(--moss);">On track at retirement</span>
-        {% endif %}
-      {% elif ns.income_goal_age %}
-        <span style="color: var(--brass);">Short at retirement — projected to reach goal at age {{ ns.income_goal_age }}</span>
-      {% else %}
-        <span style="color: var(--rust);">Short by {{ profile.currency_symbol }}{{ "{:,.0f}".format(profile.annual_expenses_target - retirement_row.withdrawal_capacity) }}/yr at retirement</span>
-      {% endif %}
-    </div>
+  <div class="fi-bar" role="progressbar" aria-label="Progress towards your FI number" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ '%.0f'|format(fi.progress_pct) }}">
+    <div class="fi-bar-fill" style="width: {{ '%.1f'|format(fi.progress_pct) }}%;"></div>
   </div>
+  <div class="fi-foot">
+    <span>{{ ccy }}{{ "{:,.0f}".format(fi.retirement_assets) }} in retirement assets today</span>
+    <span>FI number {{ ccy }}{{ "{:,.0f}".format(fi.fi_number) }} — {{ ccy }}{{ "{:,.0f}".format(fi.target) }}/yr ÷ {{ profile.withdrawal_rate }}%</span>
+  </div>
+  {% else %}
+  <div class="stat-label">Financial independence</div>
+  <div class="fi-headline">{{ ccy }}{{ "{:,.0f}".format(current_row.retirement_total) }} in retirement assets</div>
+  <p class="dim" style="margin:6px 0 0;">Set a target annual income in <a href="{{ url_for('settings.index') }}">Settings</a> to see how far you are from financial independence, and when you'll get there.</p>
   {% endif %}
 </div>
 
-{% if stale_accounts %}
-<div class="chart-card">
-  <h2>Needs updating</h2>
-  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">These balances haven't been updated in over 3 months, so the projections may be drifting from reality. Record an actual to refresh them.</p>
-  <div class="stale-list">
-    {% for a in stale_accounts %}
-    <div class="stale-row">
-      <span>{{ a.name }}{% if a.child %} <span class="dim">· {{ a.child.name }}</span>{% endif %}</span>
-      <span class="stale-age">{{ a.updated_label }}</span>
-    </div>
-    {% endfor %}
+{# ── Key figures ──────────────────────────────────────────── #}
+<div class="cards dash-stats">
+  <div class="card">
+    <div class="stat-label">Net worth today</div>
+    <div class="stat-value">{{ ccy }}{{ "{:,.0f}".format(current_row.total_net_worth) }}</div>
+    <div class="stat-sub">Age {{ current_row.age }} · includes property and anything not drawn on in retirement</div>
   </div>
-  <div class="btn-row" style="margin-top:12px;"><a href="{{ url_for('history.index') }}" class="btn">Record actuals</a></div>
+  <div class="card">
+    <div class="stat-label">At retirement (age {{ profile.retirement_age }})</div>
+    <div class="stat-value">{{ ccy }}{{ "{:,.0f}".format(retirement_row.retirement_total) }}</div>
+    <div class="stat-sub">
+      {% set capacity = retirement_row.withdrawal_capacity %}
+      {% if profile.annual_expenses_target %}
+      <span style="color: {{ 'var(--positive)' if capacity >= profile.annual_expenses_target else 'var(--warning)' }};">{{ ccy }}{{ "{:,.0f}".format(capacity) }}/yr</span> at {{ profile.withdrawal_rate }}% vs {{ ccy }}{{ "{:,.0f}".format(profile.annual_expenses_target) }} target
+      {% else %}
+      {{ ccy }}{{ "{:,.0f}".format(capacity) }}/yr at {{ profile.withdrawal_rate }}% — retirement assets only
+      {% endif %}
+    </div>
+  </div>
+  <div class="card">
+    {% if annual_spend %}
+    <div class="stat-label">Money lasts</div>
+    {% if runs_out_age %}
+    <div class="stat-value" style="color: var(--negative);">Runs out at {{ runs_out_age }}</div>
+    {% else %}
+    <div class="stat-value" style="color: var(--positive);">To {{ profile.end_age }}+</div>
+    {% endif %}
+    <div class="stat-sub">Drawing {{ ccy }}{{ "{:,.0f}".format(annual_spend) }}/yr (today's money) from {{ profile.retirement_age + 1 }} · {{ ccy }}{{ "{:,.0f}".format(final_row.retirement_total) }} left at {{ profile.end_age }}</div>
+    {% else %}
+    <div class="stat-label">Projected at age {{ profile.end_age }}</div>
+    <div class="stat-value">{{ ccy }}{{ "{:,.0f}".format(final_row.retirement_total) }}</div>
+    <div class="stat-sub">{{ ccy }}{{ "{:,.0f}".format(final_row.total_net_worth) }} total net worth</div>
+    {% endif %}
+  </div>
+</div>
+
+{# ── Housekeeping + kids ──────────────────────────────────── #}
+{% if stale_accounts or kids %}
+<div class="dash-split">
+  {% if stale_accounts %}
+  <div class="chart-card">
+    <h2>Needs updating</h2>
+    <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Not updated in over 3 months — projections may be drifting from reality.</p>
+    <div class="stale-list">
+      {% for a in stale_accounts %}
+      <div class="stale-row">
+        <span>{{ a.name }}{% if a.child %} <span class="dim">· {{ a.child.name }}</span>{% endif %}</span>
+        <span class="stale-age">{{ a.updated_label }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="btn-row" style="margin-top:12px;"><a href="{{ url_for('history.index') }}" class="btn">Record actuals</a></div>
+  </div>
+  {% endif %}
+
+  {% if kids %}
+  <div class="chart-card">
+    <h2>Kids</h2>
+    <div class="stale-list">
+      {% for s in kids %}
+      <div class="stale-row">
+        <span>{{ s.child.name }} <span class="dim">· age {{ s.child.current_age }}</span></span>
+        <span>
+          {% if not s.has_accounts %}<span class="dim">No JISA/JSIPP yet</span>
+          {% else %}{{ ccy }}{{ "{:,.0f}".format(s.current_total) }}{% if s.at_18 is not none %} <span class="dim">→ {{ ccy }}{{ "{:,.0f}".format(s.at_18) }} at 18</span>{% endif %}{% endif %}
+        </span>
+      </div>
+      {% if s.jisa_contribution %}
+      <div class="kid-allowance {{ 'stale-age' if s.jisa_contribution > jisa_allowance }}">
+        JISA contributions {{ ccy }}{{ "{:,.0f}".format(s.jisa_contribution) }}/yr of the {{ ccy }}{{ "{:,.0f}".format(jisa_allowance) }} allowance{% if s.jisa_contribution > jisa_allowance %} — over the limit{% endif %}
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+    <div class="btn-row" style="margin-top:12px;"><a href="{{ url_for('kids.index') }}" class="btn btn-ghost">Open Kids</a></div>
+  </div>
+  {% endif %}
 </div>
 {% endif %}
 
+{# ── Charts: one card, tabbed ─────────────────────────────── #}
 <div class="chart-card">
-  <h2>Net worth by account</h2>
-  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Hover a point for that year's growth, contribution, and (once retired) what's drawn. From the year after your retirement age, your target income — or your {{ profile.withdrawal_rate }}% withdrawal rate of the pot at retirement, if no target is set — is drawn from retirement assets each year. Dashed lines mark today, your target retirement age, and (if set) the age your withdrawal capacity first reaches your target income. Points marked with a dot are actual recorded figures, not projections.{% if inflated %} Retirement accounts shown inflated; property is always today's money.{% endif %}</p>
-  <div class="chart-wrap chart-wrap--lg"><canvas id="compositionChart"></canvas></div>
+  <div class="dash-tabs" role="tablist" aria-label="Projection charts">
+    <button type="button" class="dash-tab" role="tab" data-tab="networth" aria-selected="true">Net worth</button>
+    <button type="button" class="dash-tab" role="tab" data-tab="income" aria-selected="false">Income</button>
+    <button type="button" class="dash-tab" role="tab" data-tab="scenarios" aria-selected="false">Growth scenarios</button>
+  </div>
+
+  <div class="dash-panel" data-panel="networth" role="tabpanel">
+    <p class="dim dash-caption">Each account stacked. Hover for that year's growth, contribution, and (once retired) what's drawn. From the year after your retirement age, your target income — or your {{ profile.withdrawal_rate }}% withdrawal rate of the pot at retirement, if no target is set — is drawn from retirement assets. Dots are actual recorded figures.{% if inflated %} Retirement accounts shown inflated; property is always today's money.{% endif %}</p>
+    <div class="chart-wrap chart-wrap--lg"><canvas id="compositionChart"></canvas></div>
+  </div>
+
+  <div class="dash-panel" data-panel="income" role="tabpanel" hidden>
+    <p class="dim dash-caption">Annual income your retirement assets could support at {{ profile.withdrawal_rate }}%, against your target. "Drawn from pot" is what the projection actually takes out each year in retirement — it falls away if the pot runs dry.{% if inflated %} Inflated figures.{% endif %}</p>
+    <div class="chart-wrap chart-wrap--sm"><canvas id="withdrawalChart"></canvas></div>
+  </div>
+
+  <div class="dash-panel" data-panel="scenarios" role="tabpanel" hidden>
+    <p class="dim dash-caption">Retirement assets only, today to age {{ profile.end_age }}, under different flat growth rates — same contributions and spending throughout. "Your accounts' rates" uses the rates you've set per account.{% if inflated %} Inflated figures.{% endif %}</p>
+    <div class="chart-wrap"><canvas id="scenarioChart"></canvas></div>
+  </div>
 </div>
 
-<div class="chart-card">
-  <h2>Withdrawal capacity</h2>
-  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Annual income available at your {{ profile.withdrawal_rate }}% withdrawal rate — based on retirement assets only, not your total net worth. "Drawn from pot" is what the projection actually takes out each year in retirement; it falls away if the pot runs dry.{% if inflated %} Inflated figures.{% endif %}</p>
-  <div class="chart-wrap chart-wrap--sm"><canvas id="withdrawalChart"></canvas></div>
-</div>
-
-<div class="chart-card">
-  <h2>Growth rate scenarios</h2>
-  <p class="dim" style="margin-top:-8px; font-size:0.85rem;">Retirement assets only (excludes property), from today to age {{ profile.end_age }}. Same contributions throughout — only the assumed growth rate changes. "Your accounts' rates" uses whatever you've set per account on the Accounts page.{% if inflated %} Inflated figures.{% endif %}</p>
-  <div class="chart-wrap"><canvas id="scenarioChart"></canvas></div>
-</div>
-
-<div class="chart-card">
-  <h2>Year by year</h2>
-  <div class="table-scroll" style="max-height: 420px; overflow-y: auto;">
+{# ── Detail table, collapsed by default ───────────────────── #}
+<details class="chart-card dash-table">
+  <summary>Year by year</summary>
+  <div class="table-scroll" style="max-height: 420px; overflow-y: auto; margin-top: 12px;">
     <table class="ledger">
       <thead>
         <tr>
@@ -155,10 +191,13 @@
     </table>
   </div>
   <p class="hint dim">★ target retirement age · ●today marks your current age · rows before today come from your recorded <a href="{{ url_for('history.index') }}">actuals</a>, where available.</p>
-</div>
+</details>
 
+{% endif %}
 {% endblock %}
 {% block scripts %}
+{% if has_accounts %}
 <script src="{{ url_for('static', filename='js/chart.umd.min.js', v=app_version) }}"></script>
 <script src="{{ url_for('static', filename='js/charts.js', v=app_version) }}"></script>
+{% endif %}
 {% endblock %}

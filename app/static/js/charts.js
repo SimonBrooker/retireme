@@ -14,6 +14,31 @@ const UNALLOCATED_COLOR = "#9aa4b2";
 
 let CURRENCY_SYMBOL = "£";
 
+// Chart instances by tab name, so a tab switch can resize the chart it reveals
+// (charts built inside a hidden panel start at zero size).
+const dashCharts = {};
+const TAB_KEY = "retireme.dashboardTab";
+
+function showTab(name) {
+  const tabs = document.querySelectorAll(".dash-tab");
+  const panels = document.querySelectorAll(".dash-panel");
+  if (!tabs.length) return;
+  if (!document.querySelector(`.dash-panel[data-panel="${name}"]`)) name = "networth";
+  tabs.forEach((t) => t.setAttribute("aria-selected", String(t.dataset.tab === name)));
+  panels.forEach((p) => { p.hidden = p.dataset.panel !== name; });
+  if (dashCharts[name]) dashCharts[name].resize();
+  try { localStorage.setItem(TAB_KEY, name); } catch (e) { /* storage unavailable */ }
+}
+
+function setupTabs() {
+  document.querySelectorAll(".dash-tab").forEach((t) => {
+    t.addEventListener("click", () => showTab(t.dataset.tab));
+  });
+  let saved = null;
+  try { saved = localStorage.getItem(TAB_KEY); } catch (e) { /* storage unavailable */ }
+  if (saved) showTab(saved);
+}
+
 function fmtMoney(value) {
   if (value === null || value === undefined) return "—";
   return CURRENCY_SYMBOL + Math.round(value).toLocaleString("en-GB");
@@ -155,7 +180,7 @@ async function loadDashboardCharts() {
     return `Age ${data.ages[idx]} · Selected net worth ${fmtMoney(selectedTotal)}`;
   }
 
-  new Chart(document.getElementById("compositionChart"), {
+  dashCharts.networth = new Chart(document.getElementById("compositionChart"), {
     type: "line",
     data: { labels: data.ages, datasets: accountDatasets },
     options: {
@@ -194,7 +219,7 @@ async function loadDashboardCharts() {
     withdrawalDatasets.push({
       label: "Drawn from pot",
       data: data.withdrawn,
-      borderColor: cssVar("--brass") || "#c8932b",
+      borderColor: "#5aa9c9", // steel blue — distinct from the amber capacity line
       backgroundColor: "transparent",
       pointRadius: 0,
       borderWidth: 2,
@@ -213,7 +238,7 @@ async function loadDashboardCharts() {
     });
   }
 
-  new Chart(document.getElementById("withdrawalChart"), {
+  dashCharts.income = new Chart(document.getElementById("withdrawalChart"), {
     type: "line",
     data: { labels: data.ages, datasets: withdrawalDatasets },
     options: {
@@ -286,7 +311,7 @@ async function loadDashboardCharts() {
     tension: 0.1,
   });
 
-  new Chart(document.getElementById("scenarioChart"), {
+  dashCharts.scenarios = new Chart(document.getElementById("scenarioChart"), {
     type: "line",
     data: { labels: data.scenario_ages, datasets: scenarioDatasets },
     options: {
@@ -306,4 +331,7 @@ async function loadDashboardCharts() {
   });
 }
 
-document.addEventListener("DOMContentLoaded", loadDashboardCharts);
+document.addEventListener("DOMContentLoaded", () => {
+  setupTabs();
+  loadDashboardCharts();
+});

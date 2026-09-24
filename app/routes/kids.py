@@ -32,13 +32,13 @@ def _apply_inflation(rows, child, inflation_rate):
     ]
 
 
-@kids_bp.route("/")
-@login_required
-def index():
-    children = Child.query.filter_by(user_id=current_user.id).order_by(Child.id).all()
-    inflated = _show_inflated()
-    inflation_rate = current_user.profile.inflation_rate
+# Annual Junior ISA subscription limit (UK). Shown against planned JISA
+# contributions — it's a per-child cap across all of that child's JISAs.
+JISA_ALLOWANCE = 9000
 
+
+def child_summaries(children, inflated, inflation_rate):
+    """Per-child headline figures, shared by the Kids page and the Dashboard."""
     stats = []
     for child in children:
         rows = _project_child(child)
@@ -57,8 +57,21 @@ def index():
                 "current_total": current_total,
                 "at_18": row_18.total_net_worth if row_18 else None,
                 "has_accounts": len(child.accounts) > 0,
+                "jisa_contribution": sum(
+                    a.annual_contribution or 0 for a in child.accounts if a.type == "JISA"
+                ),
             }
         )
+    return stats
+
+
+@kids_bp.route("/")
+@login_required
+def index():
+    children = Child.query.filter_by(user_id=current_user.id).order_by(Child.id).all()
+    inflated = _show_inflated()
+    inflation_rate = current_user.profile.inflation_rate
+    stats = child_summaries(children, inflated, inflation_rate)
 
     return render_template(
         "kids.html",

@@ -4,6 +4,7 @@ from flask import Blueprint, render_template, jsonify, redirect, url_for, reques
 from flask_login import login_required, current_user
 
 from app.projections import project, UNALLOCATED_KEY
+from app.routes.kids import child_summaries, JISA_ALLOWANCE
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -184,6 +185,55 @@ def _drawdown_summary(rows):
     return spend, runs_out_age
 
 
+def _income_goal_age(rows, target):
+    """First age at which withdrawal capacity covers the target income. Pass
+    un-inflated rows — the target is in today's money."""
+    if not target:
+        return None
+    return next((r.age for r in rows if r.withdrawal_capacity >= target), None)
+
+
+def _fi_status(profile, rows, runs_out_age=None):
+    """Financial-independence headline, from un-inflated rows: the FI number
+    (target income ÷ withdrawal rate), how far today's retirement assets are
+    towards it, when you get there, and a one-line verdict. The verdict puts
+    the drawdown first — running out beats any FI milestone, and lasting to
+    the end age isn't a failure just because the 4% number isn't hit."""
+    target = profile.annual_expenses_target
+    if not target or not profile.withdrawal_rate:
+        return None
+    fi_number = target / (profile.withdrawal_rate / 100.0)
+    today = next(r for r in rows if r.age == profile.current_age)
+    progress = today.retirement_total / fi_number if fi_number else 0.0
+    goal_age = _income_goal_age(rows, target)
+
+    if runs_out_age:
+        kind, text = "danger", f"Money runs out at {runs_out_age}"
+    elif goal_age is None:
+        kind, text = "warning", f"Lasts to {profile.end_age}+, but short of FI at {profile.withdrawal_rate:g}%"
+    elif goal_age <= profile.current_age:
+        kind, text = "success", "You've reached financial independence"
+    elif goal_age < profile.retirement_age:
+        early = profile.retirement_age - goal_age
+        kind, text = "success", f"On track · FI at {goal_age}, {early} yr{'s' if early != 1 else ''} before retirement"
+    elif goal_age == profile.retirement_age:
+        kind, text = "success", f"On track · FI at your retirement age ({goal_age})"
+    else:
+        late = goal_age - profile.retirement_age
+        kind, text = "warning", f"Behind · FI at {goal_age}, {late} yr{'s' if late != 1 else ''} after retirement"
+
+    return {
+        "target": target,
+        "fi_number": fi_number,
+        "progress": progress,
+        "progress_pct": min(progress, 1.0) * 100,
+        "retirement_assets": today.retirement_total,
+        "goal_age": goal_age,
+        "kind": kind,
+        "text": text,
+    }
+
+
 @dashboard_bp.route("/")
 @login_required
 def index():
@@ -193,11 +243,15 @@ def index():
     profile = current_user.profile
     accounts = _adult_accounts(current_user)
     rows = project(profile, accounts, current_user.inheritances)
-    # Summarised before the inflation lens, so the spend reads in today's money.
+    # Summarised before the inflation lens, so they read in today's money.
     annual_spend, runs_out_age = _drawdown_summary(rows)
+    fi = _fi_status(profile, rows, runs_out_age)
     inflated = _show_inflated()
     if inflated:
         rows = _apply_inflation(rows, accounts, profile)
+
+    children = sorted(current_user.children, key=lambda c: c.id)
+    kids = child_summaries(children, inflated, profile.inflation_rate)
 
     # All accounts — yours and your children's — whose balance is overdue an
     # update, oldest (or never-recorded) first.
@@ -225,6 +279,9 @@ def index():
         annual_spend=annual_spend,
         runs_out_age=runs_out_age,
         stale_accounts=stale_accounts,
+        fi=fi,
+        kids=kids,
+        jisa_allowance=JISA_ALLOWANCE,
     )
 
 
@@ -234,6 +291,8 @@ def api_projection():
     profile = current_user.profile
     accounts = _adult_accounts(current_user)
     rows = project(profile, accounts, current_user.inheritances)
+    # Target income is in today's money, so compare against un-inflated rows.
+    target_income_age = _income_goal_age(rows, profile.annual_expenses_target)
     inflated = _show_inflated()
     if inflated:
         rows = _apply_inflation(rows, accounts, profile)
@@ -258,14 +317,6 @@ def api_projection():
                 "is_actual": [bool(r.is_actual.get(a.id)) for r in rows],
             }
         )
-
-    target_income_age = None
-    if profile.annual_expenses_target:
-        reached = next(
-            (r.age for r in rows if r.withdrawal_capacity >= profile.annual_expenses_target),
-            None,
-        )
-        target_income_age = reached
 
     scenario_ages, scenario_series = _growth_scenarios(
         profile, accounts, current_user.inheritances, rows, inflated=inflated

@@ -132,7 +132,7 @@
 <div class="chart-card">
   <h2>Two-factor authentication</h2>
   {% if current_user.totp_enabled %}
-  <p class="dim"><span style="color: var(--moss);">●</span> Enabled — your authenticator app's code is required at login.</p>
+  <p class="dim"><span style="color: var(--positive);">●</span> Enabled — your authenticator app's code is required at login.</p>
   <form method="post" action="{{ url_for('settings.mfa_disable') }}" data-confirm="Turn off two-factor authentication?">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <div class="field" style="max-width:280px;">

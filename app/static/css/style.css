@@ -495,6 +495,31 @@ button:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); out
 .stale-list { display: flex; flex-direction: column; }
 .stale-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--border-soft); font-size: 0.9rem; }
 .stale-row:first-child { border-top: none; }
+
+/* ── Dashboard ──────────────────────────────────────────── */
+.fi-hero { padding: 20px 24px; }
+.fi-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.fi-headline { font-size: 1.6rem; font-weight: 600; letter-spacing: -0.02em; color: var(--text); margin-top: 2px; }
+.fi-verdict { font-size: 12.5px; font-weight: 500; padding: 5px 11px; border-radius: 999px; border: 1px solid; white-space: nowrap; }
+.fi-success { color: var(--positive); border-color: var(--positive); }
+.fi-warning { color: var(--warning); border-color: var(--warning); }
+.fi-danger  { color: var(--negative); border-color: var(--negative); }
+.fi-bar { height: 10px; border-radius: 999px; background: var(--surface-2); margin: 16px 0 8px; overflow: hidden; }
+.fi-bar-fill { height: 100%; background: var(--accent); border-radius: 999px; }
+.fi-foot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted); }
+.dash-stats { margin-top: 12px; }
+.dash-split { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.dash-split > .chart-card { margin-bottom: 16px; }
+.kid-allowance { font-size: 0.78rem; color: var(--text-muted); margin: -4px 0 6px; }
+.dash-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.dash-tab {
+  background: transparent; color: var(--text-muted); border: 1px solid var(--border);
+  border-radius: 999px; padding: 5px 13px; font-size: 13px; font-weight: 500;
+}
+.dash-tab:hover { background: var(--surface-2); border-color: var(--border); color: var(--text); }
+.dash-tab[aria-selected="true"] { background: var(--accent-soft); border-color: var(--accent-border); color: var(--accent-text); }
+.dash-caption { margin: 0 0 10px; font-size: 0.85rem; }
+.dash-table > summary { cursor: pointer; font-weight: 600; font-size: 1.05rem; color: var(--text); list-style-position: inside; }
 .acct-chevron { color: var(--text-dim); font-size: 1.3rem; line-height: 1; flex-shrink: 0; }
 
 .back-link { display: inline-block; font-size: 13px; color: var(--text-muted); margin-bottom: 10px; text-decoration: none; }
@@ -594,9 +619,13 @@ button:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); out
 
 /* ── Mobile ─────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .topnav { padding: 0 16px; }
+  /* Two rows on narrow screens: brand + controls on top, links underneath
+     (scrolling sideways if needed) — so the bar never widens the page. */
+  .topnav { padding: 8px 16px; height: auto; flex-wrap: wrap; row-gap: 6px; }
   .topnav .brand { margin-right: 16px; }
+  .topnav nav { order: 3; flex-basis: 100%; overflow-x: auto; white-space: nowrap; }
   .topnav nav a { padding: 6px 8px; font-size: 13px; }
+  .fi-headline { font-size: 1.35rem; }
   .topnav .nav-user { display: none; }
   .main { padding: 20px 16px; }
   .ledger-total .value { font-size: 2rem; }
