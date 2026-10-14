@@ -185,6 +185,33 @@ class Account(db.Model):
         return self.child.current_age if self.child else self.user.profile.current_age
 
     @property
+    def current_age_snapshot(self):
+        """The recorded actual for the owner's current age, if any — the value
+        projections start "today" from."""
+        owner_age = self.owner_current_age
+        return next((s for s in self.snapshots if s.age == owner_age), None)
+
+    def reconcile_balance(self) -> bool:
+        """Make current_balance agree with the actual for the owner's current
+        age when that actual is at least as recent as the stored balance.
+        Covers actuals recorded before balance sync existed, and imports.
+        Returns True if anything changed."""
+        snap = self.current_age_snapshot
+        if snap is None:
+            return False
+        as_of = snap.snapshot_date or (snap.recorded_at.date() if snap.recorded_at else None)
+        if as_of is None or as_of > date.today():
+            return False
+        if self.balance_updated_at and self.balance_updated_at.date() > as_of:
+            return False  # a later explicit edit wins
+        changed = self.current_balance != snap.balance
+        self.current_balance = snap.balance
+        if self.balance_updated_at is None or self.balance_updated_at.date() < as_of:
+            self.balance_updated_at = datetime.combine(as_of, datetime.min.time())
+            changed = True
+        return changed
+
+    @property
     def last_updated(self):
         """Date the balance was last known to be right: an explicit balance
         edit, or the latest dated actual. Undated (age-only) actuals only count

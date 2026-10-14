@@ -11,7 +11,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from app.extensions import db, login_manager, limiter
 
 
-APP_VERSION = "2.7.2-beta"
+APP_VERSION = "2.7.3-beta"
 
 
 def create_app():
@@ -221,8 +221,26 @@ def create_app():
     with app.app_context():
         db.create_all()
         _ensure_schema()
+        _reconcile_balances()
 
     return app
+
+
+def _reconcile_balances():
+    """Bring every account's current balance into line with its actual for the
+    owner's current age, where that actual is newer. Idempotent — runs on each
+    start so data recorded before balance sync existed fixes itself."""
+    from app.models import User
+
+    changed = False
+    for user in User.query.all():
+        if user.profile and user.profile.sync_age_from_dob():
+            changed = True
+        for account in user.accounts:
+            if account.reconcile_balance():
+                changed = True
+    if changed:
+        db.session.commit()
 
 
 def _ensure_schema():

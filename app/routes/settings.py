@@ -247,6 +247,10 @@ def import_data():
         inh.target_account_id = target.id if target else None
         db.session.add(inh)
 
+    db.session.flush()
+    # An imported actual for today's age may be newer than the imported balance.
+    for acc in new_accounts:
+        acc.reconcile_balance()
     db.session.commit()
     current_app.logger.info(
         f"Data import by '{current_user.username}' from {request.remote_addr}: "

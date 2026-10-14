@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
@@ -107,6 +107,12 @@ def edit(account_id):
         _account_from_form(acc, request.form)
         if acc.current_balance != previous_balance:
             acc.balance_updated_at = datetime.now(timezone.utc)
+            # Projections start "today" from the actual at the owner's current
+            # age, so keep it in step — otherwise this edit would be ignored.
+            snap = acc.current_age_snapshot
+            if snap is not None:
+                snap.balance = acc.current_balance
+                snap.snapshot_date = date.today()
         if acc.child_id and not Child.query.filter_by(
             id=acc.child_id, user_id=current_user.id
         ).first():
